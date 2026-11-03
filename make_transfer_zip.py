@@ -33,8 +33,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PKG = os.path.join(HERE, "msu1-to-cd")
 
 #: 工程根下要带的文件 / 目录
-TOP_FILES = ("README-换机继续开发.md", "先看这里.txt", "换机转移说明.md",
-             "make_transfer_zip.py")
+#: （踩坑全集已移入 docs/，由 TOP_DIRS 覆盖，不再单列）
+TOP_FILES = ("先看这里.txt", "换机转移说明.md", "make_transfer_zip.py")
 TOP_DIRS = ("docs", "design-system", os.path.join(".workbuddy-ai", "memory"))
 
 #: msu1-to-cd 下要带的目录（**白名单**：不在名单里的一律不带）

@@ -675,7 +675,7 @@ set MSU1_TEMP=C://Users//<你>//AppData//Local//Temp//msu1gate
 它们断的本来就是「默认临时根」下的行为 —— 用 `python vendor/_probe_v596_env.py`
 在默认环境下复验，**8 / 0 全过**。详见 README ⚠71 最后一节。
 
-**详细交接文档见根目录 `README-换机继续开发.md`**，里面有全部踩坑结论（⚠ 编号章节
+**详细交接文档见 `docs/开发笔记-踩坑全集.md`**，里面有全部踩坑结论（⚠ 编号章节
 1~72）和门禁清单，务必先看它再动代码。
 
 ## 这个包里有什么
@@ -812,7 +812,7 @@ logs/                                   启动日志 startup.log
 ⚠ 早先的 `MSU1Converter.exe`（tkinter 主程序）、`MSU1Converter-qt.exe`、
 `MSU1Converter-web-Nuitka.exe`、`MSU1Converter-web-v5.1-psf.exe`、`v4.14~v4.43`
 那一串历史 exe、以及 `MSU1Converter-web-standalone/` 目录版 **都已删除**，别去找。
-要回滚就看 `README-换机继续开发.md` 里的 ⚠ 编号章节，按结论重打一遍即可。
+要回滚就看 `docs/开发笔记-踩坑全集.md` 里的 ⚠ 编号章节，按结论重打一遍即可。
 
 ## v5.3 ~ v5.9 新增的格式（这七版没改界面，全是解码 / 换解码器 / 机种表）
 
@@ -855,7 +855,7 @@ logs/                                   启动日志 startup.log
 - `docs/` `deliverables/`  设计与需求文档、WSC 烧录器、项目状态回顾
   （Web 版实拍截图在 `deliverables/v5.9.10-web/`，历史各版在 `v5.1-web/` ~ `v5.9.9-web/`）
 - `design-system/`         设计规范（令牌单一事实源 + 21 项门禁 + 规范页）
-- `README-换机继续开发.md` 交接主文档
+- `docs/开发笔记-踩坑全集.md` 交接主文档
 
 ## 没带什么（都可以重新生成）
 - `msu1-to-cd/build/`        打包中间产物（PyInstaller 的 build/ 与 Nuitka 的 build/MSU1Converter-web/）

@@ -71,7 +71,7 @@ README = """\
 3. 打包：`cd msu1-to-cd && python -m PyInstaller MSU1Converter.spec --noconfirm`
 4. 自检：`dist\\MSU1Converter.exe --selftest / --cloud-selftest / --merge-selftest / --cdp-selftest`
 
-**详细交接文档见根目录 `README-换机继续开发.md`**，里面有全部踩坑结论（⚠ 编号章节）
+**详细交接文档见 `docs/开发笔记-踩坑全集.md`**，里面有全部踩坑结论（⚠ 编号章节）
 和门禁清单，务必先看它再动代码。
 
 ## 这个包里有什么
@@ -79,7 +79,7 @@ README = """\
 - `MSU1Converter-v{v}.exe`  当前成品（≈37MB）
 - `.workbuddy/memory/`      历次改动记录与长期结论
 - `docs/` `deliverables/`  设计与需求文档、WSC 烧录器
-- `README-换机继续开发.md` 交接主文档
+- `docs/开发笔记-踩坑全集.md` 交接主文档
 
 ## 没带什么（都可以重新生成）
 - `msu1-to-cd/build/`        PyInstaller 中间产物
