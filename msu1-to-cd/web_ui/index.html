@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RetroMusic Lab · 游戏音乐转换器 6.0.12</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%238B5CF6'/%3E%3Cpath d='M5 14v-4M9 18V6M13 15.5v-7M17 19V5M21 13.5v-3' stroke='white' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E">
+<!-- 错误探针：没有控制台可看时，把首个错误写进标题，Python 侧能读到 -->
+<script>
+window.__errs = [];
+window.addEventListener("error", function (e) {
+  var msg = (e.message || "unknown") + " @ " + (e.filename || "?").split("/").pop() + ":" + e.lineno;
+  window.__errs.push(msg);
+  if (!/JSERR/.test(document.title)) document.title = "JSERR " + msg;
+});
+window.addEventListener("unhandledrejection", function (e) {
+  var msg = "promise: " + (e.reason && e.reason.message ? e.reason.message : e.reason);
+  window.__errs.push(msg);
+  if (!/JSERR/.test(document.title)) document.title = "JSERR " + msg;
+});
+</script>
+<script>
+/* 主题预置：先按 localStorage / URL 给一个深浅底。
+   ⚠ 不能省。复古主题的 28 个变量要等 /api/themes 回来才注入，没有这一段的话
+   首帧 `:root` 里一个颜色变量都没有 → 白底黑字闪一下再变深色。 */
+(function () {
+  var t = "";
+  try { t = localStorage.getItem("rml-theme") || ""; } catch (e) { }
+  if (!t) {
+    try { t = new URLSearchParams(location.search).get("theme") || ""; } catch (e) { }
+  }
+  document.documentElement.dataset.theme = (t === "light") ? "light" : "dark";
+})();
+</script>
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="cloud.css">
+</head>
+<body>
+<div class="app">
+
+  <!-- ═══════════ 顶栏 ═══════════ -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 14v-4M8 18V6M12 15.5v-7M16 19V5M20 13.5v-3"
+                stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span class="brand-name">RetroMusic Lab</span>
+      <span class="brand-ver">6.0.12</span>
+      <span class="conn" id="conn">连接中</span>
+    </div>
+
+    <div class="topbar-right">
+      <button class="tb-btn" id="btnCloud">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M7 18h10a3.5 3.5 0 0 0 .4-6.98A5.5 5.5 0 0 0 6.6 9.6 3.7 3.7 0 0 0 7 18Z"
+                stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M12 15V9m0 0-2 2m2-2 2 2" stroke="currentColor"
+                stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span id="cloudLabel">上传云盘</span>
+      </button>
+      <div class="seg" id="themeSeg">
+        <button data-theme-btn="dark" class="on" title="深色">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"
+                  stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button data-theme-btn="light" title="浅色">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6l1.4 1.4m10 10 1.4 1.4m0-12.8-1.4 1.4m-10 10L5.6 18.4"
+                  stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <button data-theme-btn="retro" title="复古配色（6 套）">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.1 0 1.8-.8 1.8-1.8
+                     0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8h1.6
+                     A3.8 3.8 0 0 0 20 10.7C20 6.6 16.4 3.5 12 3.5Z"
+                  stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            <circle cx="8.6" cy="9.6" r="1.15" fill="currentColor"/>
+            <circle cx="12" cy="7.6" r="1.15" fill="currentColor"/>
+            <circle cx="15.4" cy="9.4" r="1.15" fill="currentColor"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="workspace">
+
+    <!-- ═══════════ 左栏：音源 ═══════════ -->
+    <aside class="rail">
+      <div class="rail-head">
+        <span class="rail-title">音源</span>
+        <span class="pill" id="srcCount">0</span>
+        <div class="rail-acts">
+          <button class="rail-act" id="btnDelSel" disabled
+                  title="删除选中的音源（Ctrl / Shift + 点击可多选）">删除选中</button>
+          <button class="rail-act danger" id="btnClearSrc" disabled
+                  title="清空整个音源列表（不动输出结果）">清空</button>
+        </div>
+      </div>
+      <div class="src-list" id="srcList"></div>
+      <div class="rail-foot">
+        <button class="btn-add" id="btnAdd">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8"
+                  stroke-linecap="round"/>
+          </svg>
+          添加音源
+        </button>
+        <button class="btn-add ghost" id="btnAddDir">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M3.5 7.6A1.6 1.6 0 0 1 5.1 6h4.1l1.9 2.1h7.8a1.6 1.6 0 0 1 1.6 1.6v8.7a1.6 1.6 0 0 1-1.6 1.6H5.1a1.6 1.6 0 0 1-1.6-1.6Z"
+                  stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+          </svg>
+          添加文件夹
+        </button>
+        <button class="btn-add ghost" id="btnDownload">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 4v11m0 0-3.5-3.5M12 15l3.5-3.5M5 18.5h14"
+                  stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+                  stroke-linejoin="round"/>
+          </svg>
+          从网络下载
+        </button>
+      </div>
+    </aside>
+
+    <!-- ═══════════ 主区 ═══════════ -->
+    <main class="stage">
+      <div class="stage-head">
+        <div class="stage-title">
+          <h1 id="stageName">还没有音源</h1>
+          <div class="stage-sub" id="stageSub"></div>
+        </div>
+        <div class="stage-tools">
+          <div class="search">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="11" cy="11" r="6.2" stroke="currentColor" stroke-width="1.7"/>
+              <path d="m16 16 3.5 3.5" stroke="currentColor" stroke-width="1.7"
+                    stroke-linecap="round"/>
+            </svg>
+            <input id="searchBox" placeholder="搜索" spellcheck="false">
+          </div>
+        </div>
+      </div>
+
+      <div class="table">
+        <div class="thead" id="tableHead"></div>
+        <div class="tbody" id="trackBody"></div>
+      </div>
+    </main>
+
+    <!-- ═══════════ 右栏：输出设置 ═══════════ -->
+    <aside class="inspector">
+
+      <section class="insp-block">
+        <div class="insp-label">输出格式</div>
+        <div class="fmt-grid" id="fmtGrid">
+          <button class="fmt-card" data-fmt="cd">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="8.4" stroke="currentColor" stroke-width="1.6"/>
+              <circle cx="12" cy="12" r="2.4" stroke="currentColor" stroke-width="1.6"/>
+            </svg>
+            <span class="fmt-name">BIN + CUE</span>
+            <span class="fmt-note">烧盘 / 模拟器</span>
+          </button>
+          <button class="fmt-card" data-fmt="wav">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M3.5 12h2.2l1.6-4.6 2.2 9.2 2-12 2 15 2-9.4 1.6 4.8h3.4"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                    stroke-linejoin="round"/>
+            </svg>
+            <span class="fmt-name">WAV</span>
+            <span class="fmt-note">44.1k / 16bit</span>
+          </button>
+          <!-- v5.9.7：FLAC 与 WAV 是**同一段音频的两种容器**，所以并排放、
+               互斥选（勾一个自动取消另一个）。BIN+CUE 是另一种产物，不受影响。 -->
+          <button class="fmt-card" data-fmt="flac" title="FLAC 无损压缩，体积约 WAV 的 35%">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 4.6h7.2l3.4 3.4V19.4H5z" stroke="currentColor"
+                    stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M12 4.6V8.2h3.4" stroke="currentColor" stroke-width="1.5"
+                    stroke-linejoin="round"/>
+              <path d="M7.6 15.6l1.7-3 1.5 2 1.3-4 1.5 5" stroke="currentColor"
+                    stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="fmt-name">FLAC</span>
+            <span class="fmt-note">无损 / 体积 35%</span>
+          </button>
+          <!-- v5.9.15：MP3 是同一段音频的**第三种容器**，和 WAV / FLAC 三者互斥。
+               有损压缩（libsndfile 自带 LAME，320 kbps CBR），体积约 WAV 的 23% ——
+               给要塞进手机 / 车机 / 老播放器的用户。 -->
+          <button class="fmt-card" data-fmt="mp3" title="MP3 有损压缩（320 kbps），体积约 WAV 的 23%">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M9 17.4V7l7.6-1.5v10.2" stroke="currentColor" stroke-width="1.5"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+              <ellipse cx="6.9" cy="17.6" rx="2.1" ry="1.7" stroke="currentColor"
+                       stroke-width="1.5"/>
+              <ellipse cx="14.5" cy="15.9" rx="2.1" ry="1.7" stroke="currentColor"
+                       stroke-width="1.5"/>
+            </svg>
+            <span class="fmt-name">MP3</span>
+            <span class="fmt-note">有损 / 体积 23%</span>
+          </button>
+          <!-- v6.0.0：OGG Vorbis 是**第四种容器**，和 WAV / FLAC / MP3 四者互斥。
+               q10（约 395 kbps VBR），体积约 WAV 的 27% —— 比 MP3 略大但
+               复杂素材上更干净（Vorbis 在高频保留上优于 LAME 320）。
+               档位为什么卡在 q10 见 flac_out.OGG_LEVEL 的表：低一档就会把
+               满量程方波（NES/GB 的真实音色）判成编码异常。 -->
+          <button class="fmt-card" data-fmt="ogg" title="OGG Vorbis 有损压缩（q10，体积约 WAV 的 27%）">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="8.4" stroke="currentColor"
+                      stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M7.4 13.8c1.4 0 1.6-3.6 3-3.6s1.5 5 2.9 5 1.6-6 3-6 1.4 4.6 2.9 4.6"
+                    stroke="currentColor" stroke-width="1.4"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="fmt-name">OGG</span>
+            <span class="fmt-note">有损 / 体积 27%</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="insp-block">
+        <div class="insp-head">
+          <div class="insp-label">试听频谱 / 波形</div>
+          <button class="viz-tog on" id="vizTog" title="显示 / 隐藏可视化">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M3 14.5c2.2 0 2.6-5 4.6-5s2.4 8 4.4 8 2.4-9 4.4-9 2.4 6 4.6 6"
+                    stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                    stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="viz-wrap" id="vizWrap">
+          <canvas id="vizCanvas"></canvas>
+          <div class="viz-empty" id="vizEmpty">播放一首转好的曲子，这里会实时画出频谱与波形</div>
+        </div>
+      </section>
+
+      <section class="insp-block">
+        <div class="insp-label">选项</div>
+        <label class="sw-row">
+          <span class="sw-text">
+            XA 只导音乐
+            <em>按时长与立体声宽度滤掉音效</em>
+          </span>
+          <input type="checkbox" class="sw" id="ckXaMusic">
+        </label>
+        <label class="sw-row">
+          <span class="sw-text">
+            XA 按静音切曲
+            <em>整条长音频按静音段拆成多首</em>
+          </span>
+          <input type="checkbox" class="sw" id="ckXaSplit">
+        </label>
+        <label class="sw-row">
+          <span class="sw-text">
+            多轨合并
+            <em>合成一条连续音轨再上传</em>
+          </span>
+          <input type="checkbox" class="sw" id="ckMerge">
+        </label>
+      </section>
+
+      <section class="insp-block">
+        <div class="insp-label" title="PSF 存的是 PS1 内存快照，解码要真跑 CPU + SPU，绕不过 BIOS">PS1 / PS2 音源</div>
+        <div class="psf-row">
+          <span class="psf-dot" id="psfDot" data-st="wait"></span>
+          <span class="psf-text" id="psfText">检查中…</span>
+        </div>
+        <div class="psf-sub" id="psfSub"></div>
+        <button class="btn-mini" id="btnPsfBios">指定 BIOS…</button>
+      </section>
+
+      <section class="insp-block last">
+        <div class="insp-label">输出到</div>
+        <button class="path-box" id="pathBox">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h4l1.6 2H19a1.5 1.5 0 0 1 1.5 1.5v7A1.5 1.5 0 0 1 19 18H5a1.5 1.5 0 0 1-1.5-1.5Z"
+                  stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          </svg>
+          <span class="path-text" id="pathText">（默认：音源同级的 output 目录）</span>
+        </button>
+        <button class="btn-mini" id="btnOpenDir" title="在资源管理器里打开这个目录">打开输出目录</button>
+      </section>
+
+    </aside>
+  </div>
+
+  <!-- ═══════════ 底部 dock ═══════════ -->
+  <footer class="dock">
+
+    <div class="now">
+      <div class="now-cover">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M9.5 17.5V6.8l9-1.8v9.4" stroke="currentColor" stroke-width="1.6"
+                stroke-linejoin="round"/>
+          <circle cx="7.6" cy="17.8" r="2.3" stroke="currentColor" stroke-width="1.6"/>
+          <circle cx="16.6" cy="15.9" r="2.3" stroke="currentColor" stroke-width="1.6"/>
+        </svg>
+      </div>
+      <div class="now-text">
+        <div class="now-name" id="nowName">未在播放</div>
+        <div class="now-meta" id="nowMeta">转换完成后可试听输出</div>
+      </div>
+    </div>
+
+    <div class="transport">
+      <div class="tbtns">
+        <button class="tbtn" id="btnPrev" title="上一个">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 6v12M18 6.8v10.4L9.6 12Z" stroke="currentColor" stroke-width="1.7"
+                  stroke-linejoin="round" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <button class="tbtn play" id="btnPlay" title="播放">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M8.5 5.6v12.8L18.6 12Z"/>
+          </svg>
+        </button>
+        <button class="tbtn" id="btnNext" title="下一个">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M17 6v12M6 6.8v10.4L14.4 12Z" stroke="currentColor" stroke-width="1.7"
+                  stroke-linejoin="round" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="wave-wrap">
+        <div class="wave" id="wave"></div>
+        <div class="wave-head" id="waveHead"></div>
+      </div>
+
+      <div class="timecode">
+        <span id="tcNow">0:00</span>
+        <span class="tc-sep">/</span>
+        <span id="tcAll">0:00</span>
+      </div>
+    </div>
+
+    <div class="dock-right">
+      <div class="vol">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 9.5h3L11 6v12L7 14.5H4Z" stroke="currentColor" stroke-width="1.6"
+                stroke-linejoin="round"/>
+          <path d="M14.5 9a4.2 4.2 0 0 1 0 6" stroke="currentColor" stroke-width="1.6"
+                stroke-linecap="round"/>
+        </svg>
+        <input type="range" class="vol-slider" min="0" max="100" value="72">
+      </div>
+
+      <button class="btn-go" id="btnGo" disabled>
+        <span class="go-label">开始转换</span>
+        <span class="go-sub">先添加音源</span>
+      </button>
+    </div>
+
+  </footer>
+
+  <!-- 进度条（点击展开日志） -->
+  <div class="prog-strip" id="progStrip" hidden>
+    <div class="prog-bar"><i id="progBar" style="width:0%"></i></div>
+    <span class="prog-text" id="progText"></span>
+    <button class="btn-cancel" id="bCancel" hidden>取消</button>
+  </div>
+
+  <!-- 日志面板 -->
+  <div class="log-panel" id="logPanel" hidden>
+    <div class="log-head">
+      <span>转换日志</span>
+      <button id="logClose" title="收起">×</button>
+    </div>
+    <div class="log-box" id="logBox"></div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+</div>
+<script src="theme.js"></script>
+<script src="cloud.js"></script>
+<script src="viz.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

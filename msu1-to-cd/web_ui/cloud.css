@@ -1,0 +1,424 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   cloud.css — 云盘登录窗 / 上传范围选择。主界面与下载页共用。
+
+   全部颜色走 app.css 的令牌，两页都引了 app.css，所以这里**不写死颜色**
+   —— 唯一的例外是二维码画布（纯黑白，见 cloud.js 文件头）。
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ---------- 遮罩 + 对话框 ---------- */
+.cl-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, .55);
+  backdrop-filter: blur(3px);
+  animation: cl-fade 140ms var(--ease);
+}
+
+@keyframes cl-fade { from { opacity: 0 } to { opacity: 1 } }
+
+.cl-dlg {
+  width: 520px;
+  max-width: 100%;
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-2);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  overflow: hidden;
+  animation: cl-pop 160ms var(--ease);
+}
+
+.cl-dlg.narrow { width: 480px; }
+
+@keyframes cl-pop {
+  from { opacity: 0; transform: translateY(8px) scale(.985) }
+  to   { opacity: 1; transform: none }
+}
+
+/* ---------- 头 ---------- */
+.cl-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.cl-title {
+  flex: 1;
+  font-family: var(--font-disp);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: .2px;
+}
+
+.cl-x {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--fast), color var(--fast);
+}
+
+.cl-x:hover { background: var(--surface-hi); color: var(--text); }
+
+/* ---------- 标签页 ---------- */
+.cl-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 8px 12px 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.cl-tabs button {
+  padding: 7px 13px 9px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-2);
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: color var(--fast), border-color var(--fast);
+}
+
+.cl-tabs button:hover { color: var(--text); }
+
+.cl-tabs button.on {
+  color: var(--accent-text);
+  border-bottom-color: var(--accent);
+}
+
+/* ---------- 主体 ---------- */
+.cl-body {
+  padding: 14px 18px 16px;
+  overflow: auto;
+  min-height: 250px;
+}
+
+.cl-page[hidden] { display: none; }
+
+.cl-lead {
+  margin: 0 0 4px;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.cl-lead.small { font-size: 12.5px; }
+
+.cl-sub {
+  margin: 0 0 10px;
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.cl-stat {
+  margin: 10px 0 0;
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.6;
+  min-height: 18px;
+  word-break: break-word;
+}
+
+.cl-stat.center { text-align: center; }
+
+.cl-warn {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  background: var(--warn-soft);
+  color: var(--warn);
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
+.cl-tips {
+  margin: 10px 0 0;
+  padding-left: 16px;
+  color: var(--text-3);
+  font-size: 11.5px;
+  line-height: 1.9;
+}
+
+.cl-steps {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.85;
+}
+
+.cl-sep {
+  height: 1px;
+  margin: 14px 0 12px;
+  background: var(--border);
+}
+
+/* ---------- 按钮 ---------- */
+.cl-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.cl-btn {
+  height: 31px;
+  padding: 0 15px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background var(--fast), border-color var(--fast), opacity var(--fast);
+}
+
+.cl-btn:hover:not(:disabled) { background: var(--surface-3); border-color: var(--border-3); }
+
+.cl-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.cl-btn.primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 500;
+}
+
+.cl-btn.primary:hover:not(:disabled) { filter: brightness(1.08); background: var(--accent); }
+
+.cl-link {
+  border: 0;
+  background: transparent;
+  color: var(--accent-text);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: var(--r-xs);
+}
+
+.cl-link:hover { background: var(--accent-soft); }
+.cl-link:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ---------- Cookie 输入 ---------- */
+.cl-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  resize: vertical;
+  outline: none;
+  transition: border-color var(--fast);
+}
+
+.cl-textarea:focus { border-color: var(--accent-line); }
+
+/* ---------- 二维码 ---------- */
+.cl-qrbox {
+  display: flex;
+  justify-content: center;
+  margin: 6px 0 2px;
+}
+
+/* ⚠ 白底 + 纯黑块，**不跟随主题**。砖红/橄榄绿的二维码手机扫不出来。 */
+.cl-qrbox canvas {
+  background: #fff;
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-sm);
+  image-rendering: pixelated;
+}
+
+/* ---------- 账号行 ---------- */
+.cl-acct {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+
+.cl-acct-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--text-3);
+}
+
+.cl-acct-dot.ok { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+
+.cl-acct-name {
+  flex: 1;
+  font-size: 12.5px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cl-acct-acts { display: flex; gap: 2px; flex: 0 0 auto; }
+
+/* ---------- 单选 ---------- */
+.cl-radios {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+}
+
+.cl-radio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: var(--r-sm);
+  font-size: 12.5px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--fast);
+}
+
+.cl-radio:hover { background: var(--surface-2); }
+.cl-radio.dis { color: var(--text-3); cursor: not-allowed; }
+
+.cl-radio input { accent-color: var(--accent); margin: 0; }
+
+/* v6.0.1：上传格式（FLAC / MP3）横排。480px 的对话框放两项够用，
+   再窄（或数字很长）就自动折行 —— 不写死两列，免得挤成两行半。 */
+.cl-radios.inline {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+}
+
+.cl-radios.inline .cl-radio { flex: 0 1 auto; }
+
+/* radio 标签里跟在后面的体积数字：右对齐、等宽数字，扫一眼就能比大小 */
+.cl-radio-tag {
+  font-style: normal;
+  margin-left: 6px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 「上传格式」小节的标题：与上面的范围选择用一条虚线隔开 */
+.cl-lead.cl-sec-head {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-2);
+}
+
+/* ---------- 游戏多选（v5.9.4 上传云盘用） ---------- */
+.cl-games {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 6px;
+  /* 一个机种可能几十个游戏 —— 不封顶的话对话框会被撑出屏幕，
+     「开始上传」按钮跟着掉到看不见的地方。 */
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  padding: 3px;
+}
+
+.cl-game {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 7px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.cl-game:hover { background: var(--surface-2); }
+.cl-game input { accent-color: var(--accent); margin: 0; }
+
+.cl-game .g-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cl-game .g-meta {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+/* ---------- 脚 ---------- */
+.cl-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.cl-foot-note {
+  flex: 1;
+  color: var(--text-3);
+  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- 轻提示 ---------- */
+.cl-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 34px;
+  z-index: 9500;
+  transform: translateX(-50%);
+  max-width: 78vw;
+  padding: 9px 16px;
+  border: 1px solid var(--border-2);
+  border-radius: 999px;
+  background: var(--surface-hi);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12.5px;
+  box-shadow: var(--shadow-2);
+  animation: cl-fade 140ms var(--ease);
+}
+
+.cl-toast[hidden] { display: none; }

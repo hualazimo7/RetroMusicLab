@@ -1,0 +1,22 @@
+
+| 档位 | 数量 | 占命中 |
+|---|---|---|
+| 全等 | 89 | 95% |
+| 副标题 | 1 | 1% |
+| 模糊 | 4 | 4% |
+| **命中合计** | **94** | |
+| 未命中 | 41 | |
+
+=== 模糊档（4 条，逐条人眼复核）===
+  [x360]
+    要的是 Witcher 2, The - Assassins of Kings (2012-04-07)(CD Projekt RED)(Bandai Namco)[X360]
+    挑到了 The Witcher 2: Assassins of Kings
+  [vita]
+    要的是 Dreamlands, The - Aisling's Quest (2018-08-07)(The Domaginarium)[Vita]
+    挑到了 The Dreamlands: Aisling's Quest
+  [fmtowns]
+    要的是 Nadia - The Secret of the Blue Water (1991)(Toho)[FMTowns]
+    挑到了 The Secret of the Blue Water
+  [s98]
+    要的是 Super Daisenryaku (PC-88)(1988)(SystemSoft)
+    挑到了 Super Daisenryaku 98

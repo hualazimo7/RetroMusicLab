@@ -1,0 +1,143 @@
+MSU1Converter 多格式转换 —— 测试素材清单 (MANIFEST)
+==============================================================
+
+用途: 仅用于本项目的自动化测试 / 开发期验证。
+这些文件**不随产品 exe 分发**, 仅存在于开发者的 vendor/samples/ 下。
+
+来源: joshw 公开素材镜像站 (https://joshw.info/ 及各机种子站),
+      版权归各自版权方所有, 此处仅作测试用途取用少量样本。
+许可: joshw 为公开索引站点, 未声明明确的再分发许可;
+      因此这些样本**仅供内部测试**, 请勿随产品分发或用于其他用途。
+
+抓取方式: vendor/fetch_samples.py (串行 + 限速, 未并发压站)
+          P1 四格式见下方 "P1 (2026-10-18)" 一节
+
+--------------------------------------------------------------
+
+[nsfe] NES / FC (NSFE 扩展, 混在 nsf 站包内)
+  站点: https://nsf.joshw.info/
+  本地目录: vendor/samples/nsfe/
+  文件数: 1
+  来源 URL:
+
+
+================================================================================
+P1 四格式素材 (2026-10-18 新增: KSS / GYM / SAP / AY)
+================================================================================
+
+上一版结论「KSS 站三个子目录没有可直接取的 .7z」是**错的** —— 只列了一层目录
+就下结论。实际结构是 Apache autoindex, 每个机种下还有一层 0-9/a-z 字母目录,
+**里面才是 .7z**, 可直接下载 (无需鉴权)。见 vendor/fetch_kss_samples.py。
+
+魔数以**真实文件 hexdump + libgme 源码**双向验证, 不是照抄公开规范。
+特别地: AY 的魔数是 "ZXAYEMUL"(不是任务书里提到的 AYM/EMAY);
+SAP 的魔数是 **5 字节** "SAP\x0D\x0A"(不是 4 字节)。
+完整验证脚本: vendor/probe_p1_offsets.py (可复跑)
+
+--------------------------------------------------------------
+
+[kss] MSX / Master System / Game Gear (KSS)
+  站点: https://kss.joshw.info/
+  抓取: vendor/fetch_kss_samples.py --sub "MSX/"
+  来源 URL:
+    https://kss.joshw.info/MSX/0-9/4th%20Unit%203%20-%20Dual%20Target,%20The%20(MSX)(1989)(Data%20West).7z
+  本地目录: vendor/samples/kss/
+  文件数: 1
+    4th Unit 3 - Dual Target, The (MSX)(1989)(Data West).kss   (24998 B)
+
+  魔数证据 (前16 字节 hexdump):
+    4b 53 43 43 10 30 96 00 17 30 10 30 00 02 00 05
+    K S C C  ...                                  <- "KSCC"
+  实测: gme_track_count=256, 首轨 1s 峰值=32767, 轨数恒 256(libgme 写死)。
+
+  ⚠ 抓取过程中另发现: KSS 站的 Game Gear 类包给的是 **.sgc** 文件
+    (头 "SGC\x1a" = 53 47 43 1a)。**libgme 拒绝它**
+    (Wrong file type for this emulator, 实测), 所以 .sgc 不在本工具
+    支持范围, 也不能并入 KSS 魔数。该样本已隔离到 _rejected/。
+
+--------------------------------------------------------------
+
+[gym] Sega Genesis / Mega Drive (GYM)
+  来源: archive.org "GYM Archive (Genesis Music) [Zophar.net 01-24-06]"
+    https://archive.org/details/gym-archive-genesis-music-zophar.net-01-24-06
+  许可: 该整包是 zophar.net 的 Genesis 音乐镜像归档; 内部每个游戏一个 .rar。
+        **版权归各自游戏发行方所有**, 此处仅取 2 个文件做内部测试。
+  抓取: vendor/zip_range_fetch.py (只用 HTTP Range 取中央目录 + 目标成员,
+        不整包下载 139.5 MB)
+  来源 URL:
+    .../GYM%20archive%20(Genesis%20music)[Zophar.net 01-24-06].zip
+    内层成员: megane.rar -> BGM 1.GYM, BGM 2.gym
+              cd-hoax.rar -> Sega CD Hoax BIOS.gym (见下方"已排除")
+  本地目录: vendor/samples/gym/
+  文件数: 2
+    BGM 1.GYM  (7868 B)      BGM 2.gym  (2021 B)
+
+  魔数证据 (前 16 字节 hexdump):
+    47 59 4d 58 42 47 4d 20 32 00 00 00 00 00 00 00
+    G  Y  M  X  B  G  M     2  ...                <- "GYMX"
+  实测: 帧数 2782 -> 46366 ms / 帧数 586 -> 9766 ms,
+        与 libgme track_info().length **完全一致**。
+        首轨峰值 28206 / 18952。
+  ⚠ 两个样本的 frame-count 时长都**超过 600 秒**(BGM 1 竟是 13 小时的原始
+    驱动 dump, 无循环点), 因此被 chip_formats 的 600s 闸门挡下, 回落默认
+    150 秒 —— 这是预期行为, 不是 bug。
+
+--------------------------------------------------------------
+
+[sap] Atari 8-bit (SAP)
+  来源: archive.org "Atari SAP Music Archive"
+    https://archive.org/details/Atari_SAP_Music_Archive
+  许可: 该归档收集了 5016 个社区 SAP 文件, 版权归各composer 所有;
+        此处随机取 7 个做内部测试。
+  抓取: archive.org 的 /download/<id>/<路径> 支持**逐文件**下载。
+  来源 URL 形如:
+    https://archive.org/download/Atari_SAP_Music_Archive/Composers/<Composer>/<Name>.sap
+  本地目录: vendor/samples/sap/
+  文件数: 7
+    Back_for_Sap.sap (3598)   Big_Mack.sap (4296)   Funky_Atari.sap (3268)
+    Music_from_Poland_3.sap(3514)   Peepshow.sap (3898)
+    Playful_Professor.sap (1587)   Superboy.sap (4503)
+
+  魔数证据 (前 16 字节 hexdump):
+    53 41 50 0d 0a 41 55 54 48 4f 52 20 22 3c 3f 3e
+    S  A  P  \r \n  A  U  T  H  O  R     "  ?  ?  >   <- "SAP\x0D\x0A"
+  实测: SONGS 标签解析出的轨数与 gme_track_count **7/7 一致**
+        (Playful_Professor 5 轨, 其余 1 轨);
+        首轨峰值 7860~27717, 全部 > 300。
+
+--------------------------------------------------------------
+
+[ay] ZX Spectrum / Amstrad CPC (AY, ProjectAY 的 ZXAYEMUL 容器)
+  来源: archive.org "bulba-projectay" (SergeyBulba 整理的 ProjectAY 合集)
+    https://archive.org/details/bulba-projectay
+  许可: ProjectAY 社区作品, **版权归各作者所有**; 此处取 7 个做内部测试。
+  抓取: vendor/zip_range_fetch.py (zip 内 887 个 .ay, 只取 7 个成员)
+  来源 URL:
+    https://archive.org/download/bulba-projectay/bulba-projectay.zip
+    内层成员: bulba/Rebuilt by Bulba/*.ay 等
+  本地目录: vendor/samples/ay/
+  文件数: 7
+    AlienStorm.ay (6120)   AlteredBeast.ay (5102)   automan.ay (382)
+    ds.ay (346)   gunfight.ay (500)   heartbro.ay (512)   jetset.ay (330)
+
+  魔数证据 (前 16 字节 hexdump):
+    5a 58 41 59 45 4d 55 4c 00 00 00 00 00 e8 00 f2
+    Z  X  A  Y  E  M  U  L ...                    <- "ZXAYEMUL"
+  实测: 轨数与 gme_track_count **7/7 一致**
+        (AlienStorm 7 轨 / AlteredBeast 5 轨 / 其余 1 轨);
+        逐轨 SongLength×20ms 与 libgme length **逐轨完全一致**
+        (AlienStorm: 65280/32640/4000/4400/1800/15000/4400 ms);
+        首轨峰值 9948~32767, 全部 > 300。
+
+--------------------------------------------------------------
+
+[已排除] 不能作为验收素材的两个文件（放在 _rejected/，原因留档）
+  1. vendor/samples/_rejected/Skwarki.sap
+     头 53 41 50 0d 0a 合法, 但文本标签是 **TYPE D** = Digimusic。
+     libgme Sap_Emu::parse_info 对 TYPE D 直接 return "Digimusic not
+     supported", 实测 gme_open_file 失败。chip_formats 已据此把这类文件
+     判为 ok=False 并给出可读原因。
+  2. vendor/samples/_rejected/Sega CD Hoax BIOS.gym
+     187735 字节**全零**, 无 GYMX 头。libgme 允许"首字节 <= 3"的无头 GYM,
+     于是整条流被当成 187735 个空转帧 = 3128916 ms(52 小时)。
+     这是"无头 GYM 时长不可信"的活样本, 用例已覆盖该闸门。

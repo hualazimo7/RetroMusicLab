@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="famicom">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RetroMusic Lab · 设计规范 v1.0</title>
+<style>
+/* ============================================================
+   RetroMusic Lab 设计规范 —— 可视化对照页
+   所有颜色均来自 tokens.json（由 retro_theme.py 生成）。
+   本页不写死任何主题色，切换主题只改 :root 上的 CSS 变量。
+   形状铁律：圆角 0、描边 1px、无阴影、无渐变。
+   ============================================================ */
+:root{
+  --bg:#efe6d3; --panel:#faf5e9; --card:#fffdf7; --card2:#f2e7d0;
+  --line:#cdb489; --text:#2c2437; --muted:#6b6152; --dim:#8a8173;
+  --cyan:#b33428; --magenta:#1c6b78; --amber:#9d6412;
+  --green:#2f7a3d; --red:#8f1d18; --sel:#f7e2b6;
+  --on-accent:#fffaf0; --accent-hover:#bb483e; --accent-press:#932b21;
+  --btn-bg:#f2e7d0; --btn-hover:#decba9;
+  --line-soft:rgba(205,180,137,.55); --text-08:rgba(44,36,55,.08);
+  --ui:"Microsoft YaHei UI","Microsoft YaHei","Segoe UI",sans-serif;
+  --mono:Consolas,"Cascadia Mono",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--ui); font-size:12px; line-height:20px;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image:
+    linear-gradient(to right,var(--text-08) 1px,transparent 1px),
+    linear-gradient(to bottom,var(--text-08) 1px,transparent 1px);
+  background-size:24px 24px; opacity:.55;
+}
+::selection{background:var(--sel); color:var(--text)}
+a{color:var(--cyan); text-decoration:none}
+code,.mono{font-family:var(--mono)}
+
+/* ---------- 顶栏 ---------- */
+.topbar{
+  position:sticky; top:0; z-index:20;
+  background:var(--bg); border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:24px;
+  padding:0 28px; height:58px;
+}
+.brand{display:flex; align-items:baseline; gap:10px; white-space:nowrap}
+.brand b{font-family:var(--mono); font-size:15px; letter-spacing:.5px; color:var(--text)}
+.brand b i{color:var(--cyan); font-style:normal}
+.brand span{font-size:11px; color:var(--muted)}
+.led{width:6px;height:6px;background:var(--cyan);display:inline-block;margin-right:8px;vertical-align:1px}
+.themes{margin-left:auto; display:flex; gap:6px}
+.tbtn{
+  display:flex; align-items:center; gap:7px; cursor:pointer; white-space:nowrap;
+  background:var(--card); border:1px solid var(--line);
+  color:var(--muted); font-family:var(--ui); font-size:11px;
+  padding:5px 9px; border-radius:0;
+}
+.tbtn:hover{background:var(--btn-hover); color:var(--text)}
+.tbtn[aria-pressed="true"]{background:var(--panel); color:var(--text); box-shadow:inset 0 -2px 0 var(--cyan)}
+.chips{display:flex}
+.chips i{width:5px;height:11px;display:block}
+
+/* ---------- 骨架 ---------- */
+.shell{position:relative; z-index:1; max-width:1280px; margin:0 auto; display:grid; grid-template-columns:206px minmax(0,1fr)}
+.rail{position:sticky; top:58px; align-self:start; padding:26px 14px 40px 24px; border-right:1px solid var(--line-soft)}
+.rail h4{margin:0 0 10px; font-size:11px; font-weight:400; color:var(--dim); letter-spacing:.5px}
+.rail a{display:flex; gap:9px; padding:4px 0; color:var(--muted); font-size:12px}
+.rail a:hover{color:var(--cyan)}
+.rail a.on{color:var(--text)}
+.rail a b{font-family:var(--mono); font-weight:400; font-size:11px; color:var(--dim); width:16px}
+.rail a.on b{color:var(--cyan)}
+.rail .rail-foot{margin-top:22px; padding-top:14px; border-top:1px solid var(--line-soft); font-size:10px; line-height:16px; color:var(--dim)}
+
+main{padding:34px 42px 130px; min-width:0}
+section{scroll-margin-top:78px; margin-bottom:52px}
+.sec-head{display:flex; align-items:flex-end; gap:12px; padding-bottom:9px; border-bottom:1px solid var(--line); margin-bottom:20px}
+.sec-num{font-family:var(--mono); font-size:11px; color:var(--cyan); letter-spacing:1px; padding-bottom:3px}
+.sec-head h2{margin:0; font-size:17px; line-height:24px; font-weight:700}
+.sec-head p{margin:0 0 2px auto; font-size:11px; color:var(--muted); text-align:right; max-width:46%}
+h3{font-size:12px; font-weight:700; margin:24px 0 10px; letter-spacing:.3px}
+h3:first-child{margin-top:0}
+.lead{font-size:12px; color:var(--muted); line-height:21px; margin:0 0 16px; max-width:78ch}
+.note{border-left:2px solid var(--amber); background:var(--panel); padding:8px 12px; font-size:11px; line-height:18px; color:var(--muted); margin:14px 0}
+.note b{color:var(--text)}
+
+/* ---------- 通用块 ---------- */
+.card{background:var(--card); border:1px solid var(--line)}
+.pad{padding:14px 16px}
+.grid{display:grid; gap:12px}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+table{width:100%; border-collapse:collapse; font-size:11px}
+th,td{text-align:left; padding:6px 9px; border-bottom:1px solid var(--line-soft); vertical-align:middle}
+th{background:var(--panel); color:var(--muted); font-weight:700; font-size:11px; border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:0}
+td.m,th.m{font-family:var(--mono); font-size:11px}
+.swatch-dot{width:11px;height:11px;display:inline-block;border:1px solid var(--line);vertical-align:-1px;margin-right:6px}
+
+/* ---------- 色板 ---------- */
+.sw-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(152px,1fr)); gap:8px}
+.sw{border:1px solid var(--line); background:var(--card); cursor:pointer; text-align:left; padding:0; font-family:inherit; color:inherit}
+.sw:hover{border-color:var(--cyan)}
+.sw .chip{height:58px; display:flex; align-items:flex-end; padding:6px 8px; font-family:var(--mono); font-size:10px; letter-spacing:.3px}
+.sw .meta{padding:6px 8px 7px; border-top:1px solid var(--line-soft); display:flex; align-items:flex-start; justify-content:space-between; gap:6px}
+.sw .lk{display:flex; flex-direction:column; min-width:0}
+.sw .role{font-size:11px; color:var(--text); display:block; line-height:15px}
+.sw .key{font-family:var(--mono); font-size:10px; color:var(--dim)}
+.ratio{font-family:var(--mono); font-size:10px; border:1px solid currentColor; padding:0 4px; line-height:14px; white-space:nowrap; margin-top:1px}
+.ratio.ok{color:var(--green)}
+.ratio.warn{color:var(--amber)}
+.ratio.no{color:var(--red)}
+
+/* ---------- 字体 ---------- */
+.type-row{display:grid; grid-template-columns:132px 1fr 150px; gap:14px; align-items:baseline; padding:11px 0; border-bottom:1px solid var(--line-soft)}
+.type-row:last-child{border-bottom:0}
+.type-row .t-met{font-family:var(--mono); font-size:10px; color:var(--dim); line-height:15px}
+.type-row .t-met b{color:var(--text); font-weight:400; font-size:11px}
+.type-row .t-use{font-size:11px; color:var(--muted); text-align:right}
+.spec-title{font-size:17px; line-height:24px; font-weight:700}
+.spec-body{font-size:12px; line-height:20px}
+.spec-body-b{font-size:12px; line-height:20px; font-weight:700}
+.spec-caption{font-size:11px; line-height:16px}
+.spec-mono{font-family:var(--mono); font-size:12px; line-height:18px}
+
+/* ---------- 间距 / 尺寸 ---------- */
+.space-row{display:grid; grid-template-columns:88px 56px 1fr; gap:12px; align-items:center; padding:4px 0}
+.space-row .bar{height:10px; background:var(--cyan); opacity:.85}
+.space-row .bar.alt{background:var(--magenta)}
+.stat{border:1px solid var(--line); background:var(--card); padding:12px 13px}
+.stat b{display:block; font-family:var(--mono); font-size:19px; font-weight:400; line-height:24px; color:var(--text)}
+.stat span{display:block; font-size:10px; color:var(--muted); margin-top:2px; line-height:14px}
+
+/* ---------- 组件演示 ---------- */
+.demo{border:1px solid var(--line); background:var(--panel); padding:16px}
+.demo+.demo{margin-top:12px}
+.demo-label{font-family:var(--mono); font-size:10px; color:var(--dim); margin-bottom:11px; letter-spacing:.4px}
+.row{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+.surface-1{background:var(--bg); border:1px dashed var(--line); padding:10px}
+.surface-2{background:var(--panel); border:1px solid var(--line); padding:10px}
+.surface-3{background:var(--card); border:1px solid var(--line); padding:10px; font-family:var(--mono); font-size:10px; color:var(--muted)}
+.sfc-tag{font-family:var(--mono); font-size:9px; color:var(--dim); margin-right:8px}
+
+/* 按钮 */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:4px;
+  font-family:var(--ui); font-size:12px; line-height:16px;
+  padding:5px 10px; min-height:26px;
+  background:var(--btn-bg); color:var(--text);
+  border:1px solid var(--line); border-radius:0; cursor:pointer;
+}
+.btn:hover{background:var(--btn-hover); border-color:color-mix(in srgb,var(--line) 65%,var(--cyan))}
+.btn:active{background:var(--cyan); border-color:var(--cyan); color:var(--on-accent)}
+.btn:focus-visible{outline:1px solid var(--cyan); outline-offset:1px}
+.btn.hero{padding:6px 16px; min-height:30px; font-weight:700}
+.btn.accent{background:var(--cyan); border-color:var(--cyan); color:var(--on-accent); font-weight:700}
+.btn.accent:hover{background:var(--accent-hover); border-color:var(--accent-hover)}
+.btn.accent:active,.btn.accent.pressed{background:var(--accent-press); border-color:var(--accent-press)}
+.btn.small{font-size:11px; padding:2px 6px; min-height:20px; color:var(--muted)}
+.btn.small:hover{color:var(--text)}
+.btn.ghost{background:transparent; border-color:transparent; padding:2px 6px; min-height:22px; font-family:var(--mono)}
+.btn.ghost:hover{background:var(--card2); border-color:transparent}
+.btn[disabled]{background:var(--panel); color:var(--dim); border-color:var(--line); cursor:not-allowed}
+.btn.accent[disabled]{background:var(--card); color:var(--dim); border-color:var(--line)}
+
+/* 表单 */
+.field{
+  display:flex; align-items:center; min-height:26px; padding:3px 5px;
+  background:var(--card); border:1px solid var(--line); font-size:12px;
+}
+.field.focus{border-color:var(--cyan); box-shadow:inset 0 0 0 1px var(--cyan)}
+.field .ph{color:var(--dim)}
+.field.combo .arrow{margin-left:auto; color:var(--muted); font-size:11px; padding-left:8px}
+.field.combo:hover{background:var(--card2)}
+.field.readonly{background:var(--card2); color:var(--text)}
+label.check{display:inline-flex; align-items:center; gap:6px; font-size:12px; cursor:pointer; padding:1px 2px}
+label.check i{width:12px;height:12px;border:1px solid var(--btn-hover);background:var(--card);display:block;position:relative}
+label.check.on i{background:var(--cyan); border-color:var(--cyan)}
+label.check.on i::after{content:"";position:absolute;left:4px;top:1px;width:3px;height:7px;border-right:2px solid var(--on-accent);border-bottom:2px solid var(--on-accent);transform:rotate(40deg)}
+label.check.radio i{border-radius:50%}
+label.check.radio.on i{background:var(--card); border-color:var(--cyan)}
+label.check.radio.on i::after{content:"";position:absolute;inset:2px;background:var(--cyan);border:0;transform:none;width:auto;height:auto;border-radius:50%}
+
+/* 分区卡片 */
+.lf{border:1px solid var(--line); background:var(--panel); padding:5px 10px 9px; position:relative}
+.lf>.lf-title{position:absolute; top:-9px; left:8px; background:var(--panel); padding:0 2px; font-size:12px; font-weight:700; color:var(--cyan)}
+
+/* 列表 */
+.tv{width:100%; border-collapse:collapse; font-size:12px; background:var(--card); border:1px solid var(--line)}
+.tv th{background:var(--panel); color:var(--muted); font-weight:700; height:24px; padding:4px 6px; border-bottom:1px solid var(--line)}
+.tv td{height:22px; padding:0 6px; border-bottom:1px solid var(--line-soft); white-space:nowrap}
+.tv tr.sel td{background:var(--sel); color:var(--text)}
+.tv .num{font-family:var(--mono); font-size:11px; color:var(--amber); text-align:right}
+.tv .weak{color:var(--dim)}
+.tv .warn{color:var(--amber)}
+.tv .play{color:var(--muted); font-family:var(--mono); font-size:10px; padding-right:4px}
+.tv tr.sel .play{color:var(--text)}
+.fmt{font-family:var(--mono); font-size:10px; border:1px solid currentColor; padding:0 3px; line-height:14px}
+.fmt.nsf{color:var(--cyan)} .fmt.spc{color:var(--green)} .fmt.hes{color:var(--magenta)} .fmt.vgm{color:var(--amber)}
+
+/* 日志 */
+.log{background:var(--card); border:1px solid var(--line); padding:7px 10px; font-family:var(--mono); font-size:12px; line-height:18px}
+.log div{white-space:pre-wrap}
+.log .banner{color:var(--cyan); font-weight:700}
+.log .hint{color:var(--muted); font-size:11px}
+.log .ok{color:var(--green)} .log .er{color:var(--red)} .log .wa{color:var(--amber)} .log .mu{color:var(--muted)}
+.log .dim{color:var(--dim)}
+
+/* 进度 / 滑块 / 滚动条 */
+.pbar{height:8px; background:var(--card); border:1px solid var(--line); position:relative}
+.pbar i{position:absolute; left:-1px; top:-1px; bottom:-1px; background:var(--cyan); border:1px solid var(--cyan)}
+.scale{position:relative; height:14px; display:flex; align-items:center}
+.scale .trk{height:4px; width:100%; background:var(--card2); border-top:1px solid var(--line); border-bottom:1px solid var(--line)}
+.scale .knob{position:absolute; width:14px; height:14px; background:var(--cyan); border:1px solid var(--cyan); left:38%}
+.sbar{width:10px; height:76px; background:var(--card); border:1px solid var(--line); position:relative}
+.sbar i{position:absolute; left:-1px; right:-1px; top:8px; height:26px; background:var(--line)}
+.sbar:hover i{background:var(--cyan)}
+
+/* 横幅 */
+.mock-banner{
+  border:1px solid var(--line); background:var(--panel); padding:12px 16px; position:relative; overflow:hidden;
+}
+.mock-banner::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:repeating-linear-gradient(to bottom,transparent 0 2px,var(--text-08) 2px 3px);
+  opacity:.5;
+}
+.mock-banner .bt{font-family:var(--mono); font-size:13px; font-weight:700; letter-spacing:2.5px; color:var(--cyan)}
+.mock-banner .bs{font-size:11px; color:var(--muted); margin-top:5px; font-family:var(--mono)}
+.pixelrow{display:flex; gap:2px; margin-top:9px}
+.pixelrow i{width:9px; height:4px; background:var(--cyan); display:block}
+.pixelrow i:nth-child(3n){background:var(--magenta)}
+.pixelrow i:nth-child(4n){background:var(--amber)}
+
+/* 空状态 */
+.empty{background:var(--card); border:1px solid var(--line); padding:26px 16px; text-align:center}
+.empty .e1{font-size:12px; font-weight:700; color:var(--cyan)}
+.empty .e2{font-family:var(--mono); font-size:12px; color:var(--amber); margin-top:3px}
+.empty .e3{font-size:11px; color:var(--muted); margin-top:2px}
+
+/* 状态矩阵 */
+.mx td{text-align:left}
+.mx .st{font-family:var(--mono); font-size:10px}
+
+/* Do / Don't */
+.dd{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.dd .col{border:1px solid var(--line); background:var(--card)}
+.dd .col h5{margin:0; padding:7px 11px; font-size:11px; border-bottom:1px solid var(--line); background:var(--panel)}
+.dd .col.do h5{color:var(--green)}
+.dd .col.dont h5{color:var(--red)}
+.dd ul{margin:0; padding:9px 11px 9px 26px; font-size:11px; line-height:19px; color:var(--muted)}
+.dd ul li{margin:2px 0}
+.dd .col.do li::marker{content:"✔ "; color:var(--green)}
+.dd .col.dont li::marker{content:"✘ "; color:var(--red)}
+
+/* 流程 */
+.steps{counter-reset:s; display:grid; gap:8px}
+.step{display:grid; grid-template-columns:26px 1fr; gap:10px; border:1px solid var(--line); background:var(--card); padding:9px 11px}
+.step::before{counter-increment:s; content:counter(s,decimal-leading-zero); font-family:var(--mono); font-size:11px; color:var(--cyan); padding-top:1px}
+.step b{font-size:12px; font-weight:700}
+.step p{margin:2px 0 0; font-size:11px; color:var(--muted); line-height:17px}
+.cmd{font-family:var(--mono); font-size:11px; background:var(--card2); border:1px solid var(--line); padding:1px 5px; display:inline-block; margin-top:4px}
+
+footer{border-top:1px solid var(--line); padding-top:14px; font-size:10px; color:var(--dim); line-height:17px; display:flex; gap:20px; flex-wrap:wrap}
+#toast{
+  position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(12px);
+  background:var(--text); color:var(--bg); font-family:var(--mono); font-size:11px;
+  padding:6px 12px; opacity:0; pointer-events:none; transition:opacity .12s linear, transform .12s linear; z-index:50;
+}
+#toast.on{opacity:1; transform:translateX(-50%) translateY(0)}
+@media (max-width:1260px){
+  .brand span{display:none}
+  .tbtn span:last-child{display:none}
+  .tbtn{padding:6px 7px}
+}
+@media (max-width:1080px){
+  .shell{grid-template-columns:1fr}
+  .rail{display:none}
+  main{padding:24px 18px 90px}
+  .g4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .dd,.g3,.g2{grid-template-columns:1fr}
+  .type-row{grid-template-columns:1fr}
+  .type-row .t-use{text-align:left}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <b><span class="led"></span>RetroMusic<i>Lab</i></b>
+    <span>设计规范 v1.0 · 6 套主机主题 · WCAG AA</span>
+  </div>
+  <div class="themes" id="themeBar" role="group" aria-label="切换主题"></div>
+</header>
+
+<div class="shell">
+  <nav class="rail">
+    <h4>目录</h4>
+    <a href="#principles"><b>01</b>设计原则</a>
+    <a href="#tokens"><b>02</b>令牌与色彩</a>
+    <a href="#type"><b>03</b>字体</a>
+    <a href="#space"><b>04</b>间距与尺寸</a>
+    <a href="#components"><b>05</b>组件</a>
+    <a href="#states"><b>06</b>状态矩阵</a>
+    <a href="#a11y"><b>07</b>无障碍</a>
+    <a href="#dodont"><b>08</b>Do / Don't</a>
+    <a href="#ship"><b>09</b>扩展与验收</a>
+    <div class="rail-foot">
+      令牌真源<br><code>retro_theme.py</code><br>
+      生成器<br><code>build_tokens.py</code>
+    </div>
+  </nav>
+
+  <main>
+    <!-- 01 -->
+    <section id="principles">
+      <div class="sec-head">
+        <span class="sec-num">01</span>
+        <h2>设计原则</h2>
+        <p>界面是一台机器面板，不是网页</p>
+      </div>
+      <p class="lead">
+        这是一台 8-bit 时代的转换机：米黄机身、丝印字、硬边按钮、一颗红色电源灯。
+        所有视觉决策都从这句话出发 —— 无圆角、无投影、无渐变，分层靠三级底色的明度差与 1px 描边。
+      </p>
+      <div class="grid g3">
+        <div class="card pad">
+          <h3>先可读，再复古</h3>
+          <p class="lead" style="margin:0">复古是皮肤不是借口。正文必须过 4.5:1，霓虹青只做强调，像素画只用在小面积标识。</p>
+        </div>
+        <div class="card pad">
+          <h3>六套皮肤，一套骨骼</h3>
+          <p class="lead" style="margin:0">切主题只换颜色。字号、间距、控件尺寸在所有主题下完全一致，否则窗口会跳。</p>
+        </div>
+        <div class="card pad">
+          <h3>状态三重可辨</h3>
+          <p class="lead" style="margin:0">颜色 + 符号前缀（✔ / ! / ✘）+ 具体文案。灰度截图与色弱用户都要能读。</p>
+        </div>
+      </div>
+      <div class="note">
+        <b>三条红线：</b>① 颜色只从 <code>PALETTE</code> 取，界面代码不出现 <code>#RRGGBB</code>；
+        ② 圆角恒为 0、描边恒为 1px；③ 改任何配色必须跑 <code>retro_theme.py --all</code>，25 组对比度全过。
+      </div>
+    </section>
+
+    <!-- 02 -->
+    <section id="tokens">
+      <div class="sec-head">
+        <span class="sec-num">02</span>
+        <h2>令牌与色彩</h2>
+        <p>原始值 → 语义位 → 组件，三层不跳级</p>
+      </div>
+      <p class="lead">
+        下面每一格都从 <code>tokens.json</code> 实时渲染，角标是它与 <code>surface.raised</code>（卡片底）的对比度 ——
+        文字最常落在那里。
+        圆点是「当前主题」的值 —— 切换顶栏的机种，整页重算。
+      </p>
+      <div class="sw-grid" id="swGrid"></div>
+
+      <h3 style="margin-top:26px">语义映射（设计侧只准用左边这套说法）</h3>
+      <div class="card">
+        <table id="semTable">
+          <thead><tr><th style="width:190px">语义令牌</th><th style="width:120px">代码键</th><th>用途</th><th class="m" style="width:110px">当前值</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="note">
+        <b>键名是语义位，不是颜色名。</b>红白机主题里 <code>cyan</code> 的值是砖红 <code>#b33428</code>，
+        <code>magenta</code> 是深青 —— 完全反直觉，但这两个键被 GUI 里 26 处引用，改名会全线崩。
+        请始终把它读作「主强调 / 次强调」。
+      </div>
+    </section>
+
+    <!-- 03 -->
+    <section id="type">
+      <div class="sec-head">
+        <span class="sec-num">03</span>
+        <h2>字体</h2>
+        <p>5 档字号，数字走等宽</p>
+      </div>
+      <p class="lead">
+        界面字 <b>Microsoft YaHei UI</b>，数值字 <b>Consolas</b>。只有 5 档字号 ——
+        需要层级就用字重和颜色，不要造 10 / 11 / 12 号。
+      </p>
+      <div class="card pad" id="typeBox"></div>
+      <div class="grid g2" style="margin-top:12px">
+        <div class="card pad">
+          <h3>为什么数字必须等宽</h3>
+          <p class="lead" style="margin:0">
+            列表里的 <code>4:31</code> 与 <code>12:07</code> 要在同一列对齐成一条线，
+            比例字体下会左右跳。时长、大小、路径、帧率一律 <code>font.mono</code>。
+          </p>
+        </div>
+        <div class="card pad">
+          <h3>行高下限</h3>
+          <p class="lead" style="margin:0">
+            正文 20px、辅助 16px、<b>日志 18px</b>。日志行高低于 18px 时，长任务滚屏会糊成一片。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 -->
+    <section id="space">
+      <div class="sec-head">
+        <span class="sec-num">04</span>
+        <h2>间距与尺寸</h2>
+        <p>4px 基准 · 硬边 1px · 行高 22px</p>
+      </div>
+      <div class="grid g2" style="align-items:start">
+        <div class="card pad">
+          <h3>间距阶</h3>
+          <div id="spaceBox"></div>
+          <p class="lead" style="margin:12px 0 0">
+            现有 <code>Entry</code> 的 <code>5 / 3</code> 内边距是非 4 倍数值，属于历史值、已冻结 ——
+            微调会让所有表单高度错位。
+          </p>
+        </div>
+        <div class="card pad">
+          <h3>实测尺寸</h3>
+          <div class="grid g2" id="sizeBox"></div>
+        </div>
+      </div>
+      <div class="grid g4" style="margin-top:12px">
+        <div class="stat"><b>0px</b><span>圆角 · 全局禁止圆角</span></div>
+        <div class="stat"><b>1px</b><span>描边 · 恒为 border.hairline</span></div>
+        <div class="stat"><b>22px</b><span>列表行高 · 不随字号自适应</span></div>
+        <div class="stat"><b>80ms</b><span>横幅逐帧 · 无补间动画</span></div>
+      </div>
+    </section>
+
+    <!-- 05 -->
+    <section id="components">
+      <div class="sec-head">
+        <span class="sec-num">05</span>
+        <h2>组件</h2>
+        <p>全部按 tkinter 真实样式复刻</p>
+      </div>
+
+      <div class="demo">
+        <div class="demo-label">FRAME · 三级表面，一屏最多三级</div>
+        <div class="surface-1"><span class="sfc-tag">TFrame / bg</span>
+          <div class="surface-2"><span class="sfc-tag">Panel.TFrame / panel</span>
+            <div class="surface-3">Card.TFrame / card — 再嵌套就该改用分隔线</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="demo-label">BUTTON · 一屏只许一个 Accent</div>
+        <div class="row">
+          <button class="btn">清除缓存</button>
+          <button class="btn">取消</button>
+          <button class="btn hero accent">开始转换</button>
+          <button class="btn small">🗑 小按钮 8pt</button>
+          <button class="btn ghost" title="上一轨">◀</button>
+          <button class="btn ghost" title="下一轨">▶</button>
+          <button class="btn" disabled>已禁用</button>
+          <button class="btn accent" disabled>禁用主按钮</button>
+        </div>
+        <div class="row" style="margin-top:9px">
+          <span class="tbtn" style="pointer-events:none">hover 态</span>
+          <span class="btn pressed" style="pointer-events:none">pressed 态</span>
+          <span class="btn accent pressed" style="pointer-events:none">主按钮 pressed</span>
+          <span style="font-size:11px;color:var(--muted)">← 实际悬停 / 按下试试；「开始转换」是 Hero（padding 16,6）</span>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="demo-label">INPUT · 占位提示放上方，不用 placeholder</div>
+        <div class="grid g3">
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">输出目录</div>
+            <div class="field">D:\Output\MSU1</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">采样率（聚焦态）</div>
+            <div class="field focus">44100</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">输出格式</div>
+            <div class="field combo readonly"><span>WAV</span><span class="arrow">▾</span></div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <label class="check on"><i></i>多轨合并为一个 WAV</label>
+          <label class="check"><i></i>删除临时文件</label>
+          <label class="check radio on"><i></i>仅转合并</label>
+          <label class="check radio"><i></i>分轨 + 合并</label>
+          <span style="font-size:11px;color:var(--dim)">勾选框是 12×12 手绘像素块，不用 clam 自带的「✕」形勾</span>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="demo-label">LABELFRAME · ① 圈号前缀由调用方传入</div>
+        <div class="lf" style="margin-top:10px">
+          <div class="lf-title">① 输出设置</div>
+          <div class="row" style="padding-top:4px">
+            <div class="field" style="min-width:200px">C:\Music\MSU1</div>
+            <button class="btn small">浏览…</button>
+            <span style="font-size:11px;color:var(--muted)">padding (10,5) · 纵向压缩到 5px 以适配 1080p</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="demo-label">TREEVIEW · 22px 行高 · 首列 ▶ 播放（不能嵌按钮）</div>
+        <table class="tv">
+          <thead><tr><th style="width:22px"></th><th>曲目</th><th style="width:56px">格式</th><th style="width:70px;text-align:right">时长</th><th style="width:78px;text-align:right">大小</th></tr></thead>
+          <tbody>
+            <tr class="sel"><td class="play">■</td><td>Green Hill Zone</td><td><span class="fmt vgm">VGM</span></td><td class="num">2:31</td><td class="num">1.8 MB</td></tr>
+            <tr><td class="play">▶</td><td>Marble Zone</td><td><span class="fmt vgm">VGM</span></td><td class="num">1:58</td><td class="num">1.4 MB</td></tr>
+            <tr><td class="play">▶</td><td class="weak">沙丘（机翻，低置信）</td><td><span class="fmt nsf">NSF</span></td><td class="num">3:07</td><td class="num">2.2 MB</td></tr>
+            <tr><td class="play">▶</td><td class="warn">! Chemical Plant — 无时长信息</td><td><span class="fmt spc">SPC</span></td><td class="num">--:--</td><td class="num">64 KB</td></tr>
+            <tr><td class="play">·</td><td class="weak">Unsupported Demo</td><td><span class="fmt hes">HES</span></td><td class="num">--:--</td><td class="num">8 KB</td></tr>
+          </tbody>
+        </table>
+        <p class="lead" style="margin:9px 0 0">
+          tag 语义：<code>weak</code>=dim（机翻/低置信）、<code>warn</code>=amber+「!」、<code>unsup</code>=dim、
+          <code>grp</code>=amber+bold。选中行用墨字配 <code>sel</code> 底 —— <b>整行转红会被读成报错</b>。
+        </p>
+      </div>
+
+      <div class="demo">
+        <div class="demo-label">LOG · 等宽 12px / 行高 18px · 每行带符号前缀</div>
+        <div class="log">
+          <div class="banner">RETRO MUSIC LAB // 转换引擎就绪</div>
+          <div class="hint">提示：拖入 .spc / .nsf / .vgm 即可开始；Ctrl+O 打开文件</div>
+          <div class="ok">✔ 已加载 17 个音源，合计 42.6 MB</div>
+          <div class="mu">· 正在转换 3/17 — Green Hill Zone (VGM)</div>
+          <div class="wa">! 第 7 轨无时长信息，按 2:30 兜底</div>
+          <div class="er">✘ 第 9 轨解码失败：文件损坏，已跳过</div>
+          <div class="dim">（详细堆栈见 crash.log）</div>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="demo-label">PROGRESS / SCALE / SCROLLBAR</div>
+        <div class="grid g2" style="gap:18px">
+          <div>
+            <div class="row" style="justify-content:space-between;margin-bottom:6px">
+              <span style="font-size:11px;color:var(--muted)">转换进度 · 62%</span>
+              <span style="font-family:var(--mono);font-size:11px;color:var(--amber)">10 / 17</span>
+            </div>
+            <div class="pbar"><i style="width:62%"></i></div>
+            <div class="row" style="margin-top:14px">
+              <span style="font-size:11px;color:var(--muted);width:44px">试听</span>
+              <div class="scale" style="flex:1"><div class="trk"></div><div class="knob"></div></div>
+              <span style="font-family:var(--mono);font-size:11px;color:var(--amber)">1:12 / 2:31</span>
+            </div>
+          </div>
+          <div class="row" style="align-items:flex-start;gap:14px">
+            <div class="sbar"><i></i></div>
+            <p class="lead" style="margin:0">
+              进度条厚 8px、填充 <code>cyan</code>；滑块 14×14、<code>gripcount=0</code>；
+              滚动条宽 10px，hover 转 <code>cyan</code>。百分比永远放在右侧等宽标签里，不画在条内。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="demo-label">EMPTY STATE · 盖在列表正中，有数据即消失</div>
+        <div class="empty">
+          <div class="e1">＋ 把音源拖进来</div>
+          <div class="e2">.spc  .nsf  .vgm  .hes  .kss  .sap  .gym  .ay  .gbs</div>
+          <div class="e3">或点右侧「添加音源…」</div>
+        </div>
+        <p class="lead" style="margin:9px 0 0">
+          空列表不写"尚未添加音源"这种状态句，而是<b>直接给出下一步动作</b>；整块可点，
+          点下去等于按「添加音源」。<code>place(in_=列表)</code> 相对列表定位，
+          不能按分区宽度算（右侧还有 110px 按钮列）。
+        </p>
+      </div>
+
+      <div class="demo">
+        <div class="demo-label">BANNER · 程序化像素画，80ms 逐帧</div>
+        <div class="mock-banner">
+          <div class="bt">RETRO MUSIC LAB</div>
+          <div class="bs">MSU-1 CD AUDIO CONVERTER / v4.27</div>
+          <div class="pixelrow" id="pixelRow"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 -->
+    <section id="states">
+      <div class="sec-head">
+        <span class="sec-num">06</span>
+        <h2>状态矩阵</h2>
+        <p>五态齐备，focus 必须可见</p>
+      </div>
+      <div class="card">
+        <table class="mx">
+          <thead><tr><th style="width:180px">组件</th><th>default</th><th>hover</th><th>pressed</th><th>focus</th><th>disabled</th><th>selected</th></tr></thead>
+          <tbody>
+            <tr><td><b>TButton</b></td><td class="st">card2 / text</td><td class="st">mix(card2,line,.55)</td><td class="st">cyan / onAccent</td><td class="st">border cyan</td><td class="st">panel / dim</td><td>—</td></tr>
+            <tr><td><b>Accent.TButton</b></td><td class="st">cyan / onAccent</td><td class="st">accentHover</td><td class="st">accentPress</td><td class="st">accentPress</td><td class="st">card / dim</td><td>—</td></tr>
+            <tr><td><b>TEntry</b></td><td class="st">card / line</td><td class="st">border shade(cyan,.5)</td><td>—</td><td class="st">border cyan</td><td class="st">panel / dim</td><td class="st">sel / text</td></tr>
+            <tr><td><b>TCombobox</b></td><td class="st">card / line</td><td class="st">bg card2</td><td class="st">bg card2</td><td class="st">border cyan</td><td class="st">panel / dim</td><td>—</td></tr>
+            <tr><td><b>TCheckbutton</b></td><td class="st">border check.ring</td><td class="st">bg card2</td><td class="st">block cyan</td><td class="st">border cyan</td><td class="st">panel / dim</td><td class="st">cyan + 勾</td></tr>
+            <tr><td><b>Treeview</b></td><td class="st">card / text</td><td>—</td><td>—</td><td class="st">row border</td><td>—</td><td class="st">sel / text</td></tr>
+            <tr><td><b>Treeview.Heading</b></td><td class="st">panel / muted</td><td class="st">card2 / cyan</td><td class="st">card</td><td>—</td><td>—</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">
+        <b>焦点可见性：</b>所有可键盘操作的控件必须有 <code>focuscolor=cyan</code> 的可见描边。
+        禁止用 <code>takefocus=0</code> 断掉 Tab 链（只允许在纯装饰控件上关）。
+      </div>
+    </section>
+
+    <!-- 07 -->
+    <section id="a11y">
+      <div class="sec-head">
+        <span class="sec-num">07</span>
+        <h2>无障碍自检</h2>
+        <p id="a11ySummary">正文 4.5:1 · 弱化 3.0:1</p>
+      </div>
+      <p class="lead">
+        25 组配对必须在 6 套主题下全部通过（当前 150/150）。下表按<b>当前主题</b>实时计算 ——
+        与 <code>retro_theme.py --all</code> 的判定标准完全一致。
+      </p>
+      <div class="card">
+        <table id="cTable">
+          <thead><tr><th>配对</th><th class="m" style="width:150px">前景 / 背景</th><th class="m" style="width:64px">实测</th><th class="m" style="width:56px">要求</th><th style="width:48px">结论</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="grid g3" style="margin-top:12px">
+        <div class="card pad"><h3>不靠颜色单独传意</h3><p class="lead" style="margin:0">日志带 <code>✔ ! ✘ ·</code> 前缀；警告文案带「!」；状态一律带文字，不靠色块。</p></div>
+        <div class="card pad"><h3>键盘路径</h3><p class="lead" style="margin:0">Tab 顺序 = 视觉顺序；主操作 <code>Enter</code>、取消 <code>Esc</code>；列表 <code>↑↓</code> 移动、<code>Enter</code> 试听。</p></div>
+        <div class="card pad"><h3>DPI 与缩放</h3><p class="lead" style="margin:0">exe 必须在建 Tk 之前 <code>set_dpi_awareness()</code>，否则 125% 下窗口被钳到 780 高。</p></div>
+      </div>
+    </section>
+
+    <!-- 08 -->
+    <section id="dodont">
+      <div class="sec-head">
+        <span class="sec-num">08</span>
+        <h2>Do / Don't</h2>
+        <p>评审时逐条对照</p>
+      </div>
+      <div class="dd">
+        <div class="col do">
+          <h5>DO</h5>
+          <ul>
+            <li>用 <code>surface.panel</code> + 1px <code>line</code> 做分区</li>
+            <li>一屏只放一个 <code>Accent.TButton</code></li>
+            <li>数值一律等宽，成列对齐</li>
+            <li>选中行墨字 + <code>sel</code> 底</li>
+            <li>失败写清「哪一步 / 为什么 / 已怎么处理」</li>
+            <li>切主题只换颜色</li>
+            <li>长任务日志追加、可滚、可停</li>
+            <li>图标按钮配 tooltip</li>
+          </ul>
+        </div>
+        <div class="col dont">
+          <h5>DON'T</h5>
+          <ul>
+            <li>用投影/圆角做「卡片感」</li>
+            <li>把三个按钮都染成主色</li>
+            <li>数字用中文字体，列宽乱跳</li>
+            <li>选中行整行转红（读成报错）</li>
+            <li>只写「发生错误」+ 一个红块</li>
+            <li>切主题顺带改字号/间距</li>
+            <li>模态弹窗挡住批量流程</li>
+            <li>只有一个 <code>▾</code> 让用户猜功能</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 09 -->
+    <section id="ship">
+      <div class="sec-head">
+        <span class="sec-num">09</span>
+        <h2>扩展与验收</h2>
+        <p>改代码 → 重生成 → 过门禁</p>
+      </div>
+      <div class="grid g2" style="align-items:start;gap:18px">
+        <div>
+          <h3>新增一套主题</h3>
+          <div class="steps">
+            <div class="step"><div><b>加 14 色位</b><p>在 <code>THEMES</code> 里加 key，填满 14 个语义位 + <code>on_accent</code>，不改任何键名。</p></div></div>
+            <div class="step"><div><b>登记顺序</b><p>把 key 加进 <code>THEME_ORDER</code>，决定下拉框位置。</p></div></div>
+            <div class="step"><div><b>过对比度</b><p>必须 25/25。<span class="cmd">python retro_theme.py --all</span></p></div></div>
+            <div class="step"><div><b>重生成令牌</b><p>本页与 tokens.json 自动更新。<span class="cmd">python build_tokens.py</span></p></div></div>
+            <div class="step"><div><b>目检三个界面</b><p>主窗 6 分区、下载窗三列、登录对话框：按钮是否"消失"、表头是否可读、选中行是否像报错。</p></div></div>
+          </div>
+        </div>
+        <div>
+          <h3>验收门禁</h3>
+          <div class="card">
+            <table>
+              <thead><tr><th>门禁</th><th class="m">通过标准</th></tr></thead>
+              <tbody>
+                <tr><td>对比度</td><td class="m">6 套 × 25 组全过</td></tr>
+                <tr><td>令牌一致性</td><td class="m">零漂移 / 键完整 / 尺寸一致</td></tr>
+                <tr><td>打包四项自检</td><td class="m">selftest / cloud / cdp / merge</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="note" style="margin-top:12px">
+            <code>check_design_system.py</code> 会反向校验本页与 <code>tokens.json</code> 是否还和
+            <code>retro_theme.py</code> 一致：手改令牌或漏改尺寸都会被打回。
+          </div>
+          <p class="lead" style="margin:14px 0 0">
+            产品本体不读这份 HTML —— 它只是评审、交接、找色值时的对照表。
+            真正生效的永远是 <code>tkinter</code> 上那套 <code>ttk.Style</code>。
+          </p>
+        </div>
+      </div>
+      <footer>
+        <span>RetroMusic Lab · 设计规范 v1.0</span>
+        <span>令牌真源 <code>msu1-to-cd/retro_theme.py</code></span>
+        <span>生成于 <span id="genDate">—</span></span>
+        <span>形状：圆角 0 / 描边 1px / 无阴影</span>
+      </footer>
+    </section>
+  </main>
+</div>
+
+<div id="toast">已复制</div>
+
+<script id="design-tokens" type="application/json">
+{
+ "meta": {
+  "product": "RetroMusic Lab",
+  "app": "MSU1Converter",
+  "version": "1.0.0",
+  "generated": "2026-10-19",
+  "source": "msu1-to-cd/retro_theme.py",
+  "generator": "design-system/build_tokens.py",
+  "note": "本文件由脚本生成，请勿手改。改 retro_theme.py 后重跑生成命令。"
+ },
+ "color": {
+  "order": [
+   "famicom",
+   "nes",
+   "gameboy",
+   "pce",
+   "megadrive",
+   "sfc"
+  ],
+  "default": "famicom",
+  "semantics": {
+   "surface.base": "bg",
+   "surface.panel": "panel",
+   "surface.raised": "card",
+   "surface.sunken": "card2",
+   "border.hairline": "line",
+   "text.primary": "text",
+   "text.secondary": "muted",
+   "text.tertiary": "dim",
+   "accent.primary": "cyan",
+   "accent.secondary": "magenta",
+   "accent.numeric": "amber",
+   "status.success": "green",
+   "status.danger": "red",
+   "selection.bg": "sel",
+   "selection.fg": "text",
+   "on.accent": "onAccent"
+  },
+  "themes": {
+   "famicom": {
+    "label": "红白机 Famicom",
+    "palette": {
+     "bg": "#efe6d3",
+     "panel": "#faf5e9",
+     "card": "#fffdf7",
+     "card2": "#f2e7d0",
+     "line": "#cdb489",
+     "text": "#2c2437",
+     "muted": "#6b6152",
+     "dim": "#8a8173",
+     "cyan": "#b33428",
+     "magenta": "#1c6b78",
+     "amber": "#9d6412",
+     "green": "#2f7a3d",
+     "red": "#8f1d18",
+     "sel": "#f7e2b6"
+    },
+    "derived": {
+     "onAccent": "#fffaf0",
+     "onSel": "#2c2437",
+     "accentHover": "#bb483e",
+     "accentPress": "#932b21",
+     "button.bg": "#f2e7d0",
+     "button.hover": "#decba9",
+     "check.ring": "#b09b78"
+    }
+   },
+   "nes": {
+    "label": "美版 NES",
+    "palette": {
+     "bg": "#d6d4cf",
+     "panel": "#e7e5e0",
+     "card": "#f6f5f2",
+     "card2": "#dbd9d3",
+     "line": "#a3a19b",
+     "text": "#1d1f24",
+     "muted": "#54585e",
+     "dim": "#6e7278",
+     "cyan": "#4a2a7a",
+     "magenta": "#a8291f",
+     "amber": "#7a5a10",
+     "green": "#1f6b3a",
+     "red": "#8c1a14",
+     "sel": "#cfc4e4"
+    },
+    "derived": {
+     "onAccent": "#fbf8ff",
+     "onSel": "#1d1f24",
+     "accentHover": "#5c3f87",
+     "accentPress": "#3d2264",
+     "button.bg": "#dbd9d3",
+     "button.hover": "#bcbab4",
+     "check.ring": "#8b8b89"
+    }
+   },
+   "gameboy": {
+    "label": "Game Boy（DMG）",
+    "palette": {
+     "bg": "#c3cc9c",
+     "panel": "#d3dcb4",
+     "card": "#e5eacd",
+     "card2": "#c8d2a2",
+     "line": "#8d9a66",
+     "text": "#16290f",
+     "muted": "#3f5326",
+     "dim": "#5b6c39",
+     "cyan": "#2a4c19",
+     "magenta": "#6b4710",
+     "amber": "#6b4710",
+     "green": "#1f5c24",
+     "red": "#7d2610",
+     "sel": "#aebd7d"
+    },
+    "derived": {
+     "onAccent": "#f1f6dc",
+     "onSel": "#16290f",
+     "accentHover": "#3f5e30",
+     "accentPress": "#223e14",
+     "button.bg": "#c8d2a2",
+     "button.hover": "#a8b381",
+     "check.ring": "#768553"
+    }
+   },
+   "pce": {
+    "label": "PC Engine",
+    "palette": {
+     "bg": "#e8e3da",
+     "panel": "#f5f1e9",
+     "card": "#fffdf8",
+     "card2": "#ded9cd",
+     "line": "#bdb3a3",
+     "text": "#29251f",
+     "muted": "#5b5449",
+     "dim": "#847c6f",
+     "cyan": "#a83712",
+     "magenta": "#1f5f7a",
+     "amber": "#8a5a10",
+     "green": "#2c6b3c",
+     "red": "#8f2214",
+     "sel": "#f3d6bd"
+    },
+    "derived": {
+     "onAccent": "#fffaf2",
+     "onSel": "#29251f",
+     "accentHover": "#b14b2a",
+     "accentPress": "#8a2d0f",
+     "button.bg": "#ded9cd",
+     "button.hover": "#ccc4b6",
+     "check.ring": "#a09688"
+    }
+   },
+   "megadrive": {
+    "label": "Mega Drive",
+    "palette": {
+     "bg": "#dbdad5",
+     "panel": "#ebe9e3",
+     "card": "#f8f7f3",
+     "card2": "#d4d3cc",
+     "line": "#a6a49d",
+     "text": "#1b1c20",
+     "muted": "#53565a",
+     "dim": "#6f7276",
+     "cyan": "#1c3f8f",
+     "magenta": "#8a5c0c",
+     "amber": "#8a5c0c",
+     "green": "#1e6b3a",
+     "red": "#8c1a14",
+     "sel": "#ccd6ea"
+    },
+    "derived": {
+     "onAccent": "#f7faff",
+     "onSel": "#1b1c20",
+     "accentHover": "#33529a",
+     "accentPress": "#173475",
+     "button.bg": "#d4d3cc",
+     "button.hover": "#bbb9b2",
+     "check.ring": "#8d8d89"
+    }
+   },
+   "sfc": {
+    "label": "超任 Super Famicom",
+    "palette": {
+     "bg": "#d8d4cb",
+     "panel": "#eae6dd",
+     "card": "#faf8f3",
+     "card2": "#d1cdc3",
+     "line": "#a8a29a",
+     "text": "#25222a",
+     "muted": "#565153",
+     "dim": "#716c68",
+     "cyan": "#5a3d8c",
+     "magenta": "#2c6b5e",
+     "amber": "#7a570c",
+     "green": "#2a6b3a",
+     "red": "#8c1a14",
+     "sel": "#d9cfe9"
+    },
+    "derived": {
+     "onAccent": "#fbf9ff",
+     "onSel": "#25222a",
+     "accentHover": "#6a5098",
+     "accentPress": "#4a3273",
+     "button.bg": "#d1cdc3",
+     "button.hover": "#bab5ac",
+     "check.ring": "#8f8a85"
+    }
+   }
+  }
+ },
+ "type": {
+  "families": {
+   "ui": "Microsoft YaHei UI",
+   "mono": "Consolas",
+   "bannerStack": [
+    "Cascadia Code",
+    "Cascadia Mono",
+    "Consolas",
+    "DejaVu Sans Mono",
+    "Courier New"
+   ]
+  },
+  "roles": [
+   {
+    "token": "font.title",
+    "role": "分区大标题 / 对话框标题",
+    "family": "Microsoft YaHei UI",
+    "sizePt": 13,
+    "px": 17,
+    "weight": 700,
+    "lineHeightPx": 24
+   },
+   {
+    "token": "font.body",
+    "role": "正文、列表、按钮、表单",
+    "family": "Microsoft YaHei UI",
+    "sizePt": 9,
+    "px": 12,
+    "weight": 400,
+    "lineHeightPx": 20
+   },
+   {
+    "token": "font.body-bold",
+    "role": "按钮强调、分区标题、表头",
+    "family": "Microsoft YaHei UI",
+    "sizePt": 9,
+    "px": 12,
+    "weight": 700,
+    "lineHeightPx": 20
+   },
+   {
+    "token": "font.caption",
+    "role": "辅助说明、小按钮、次要标签",
+    "family": "Microsoft YaHei UI",
+    "sizePt": 8,
+    "px": 11,
+    "weight": 400,
+    "lineHeightPx": 16
+   },
+   {
+    "token": "font.mono",
+    "role": "日志、数值、时长、路径",
+    "family": "Consolas",
+    "sizePt": 9,
+    "px": 12,
+    "weight": 400,
+    "lineHeightPx": 18
+   }
+  ]
+ },
+ "space": {
+  "base": 4,
+  "scale": {
+   "space.0": 0,
+   "space.0-5": 2,
+   "space.1": 4,
+   "space.1-5": 6,
+   "space.2": 8,
+   "space.2-5": 10,
+   "space.3": 12,
+   "space.4": 16,
+   "space.6": 24,
+   "space.8": 32
+  }
+ },
+ "size": {
+  "window.main": {
+   "value": "1260×1020",
+   "note": "目标尺寸；最小 1080×780，两列 PanedWindow 可拖"
+  },
+  "window.download": {
+   "value": "1400×720",
+   "note": "下载窗三列"
+  },
+  "window.dialog": {
+   "value": "760×540",
+   "note": "登录/确认类对话框基准"
+  },
+  "control.height": {
+   "value": 26,
+   "note": "按钮 padding (10,5) + 12px 字 + 1px 边"
+  },
+  "row.height": {
+   "value": 22,
+   "note": "Treeview 行高"
+  },
+  "progress.thickness": {
+   "value": 8,
+   "note": "进度条厚度"
+  },
+  "slider.size": {
+   "value": 14,
+   "note": "试听进度滑块 14×14"
+  },
+  "scrollbar.width": {
+   "value": 10,
+   "note": "滚动条宽度"
+  },
+  "combobox.arrow": {
+   "value": 13,
+   "note": "下拉箭头尺寸"
+  },
+  "tree.indent": {
+   "value": 14,
+   "note": "树形缩进"
+  }
+ },
+ "padding": {
+  "button.hero": {
+   "x": 16,
+   "y": 6,
+   "token": "space.4 / space.1-5（主操作，一屏仅一个）"
+  },
+  "button": {
+   "x": 10,
+   "y": 5,
+   "token": "space.2-5 / space.1-5"
+  },
+  "button.small": {
+   "x": 6,
+   "y": 2,
+   "token": "space.1-5 / space.0-5"
+  },
+  "entry": {
+   "x": 5,
+   "y": 3,
+   "token": "控件内 5/3（非 4 的整数倍，历史值，勿改）"
+  },
+  "combobox": {
+   "x": 5,
+   "y": 3,
+   "token": "同上"
+  },
+  "checkbox": {
+   "x": 2,
+   "y": 1,
+   "token": "space.0-5 / —"
+  },
+  "tree.heading": {
+   "x": 6,
+   "y": 4,
+   "token": "space.1-5 / space.1"
+  },
+  "labelframe": {
+   "x": 10,
+   "y": 5,
+   "token": "space.2-5 / space.1-5"
+  },
+  "labelframe.label": {
+   "x": 2,
+   "y": 0,
+   "token": "space.0-5 / space.0"
+  },
+  "section.gap": {
+   "x": 8,
+   "y": 6,
+   "token": "分区之间 space.2 / space.1-5"
+  }
+ },
+ "radius": {
+  "none": 0,
+  "note": "全局 0：像素硬边，禁止圆角"
+ },
+ "border": {
+  "hairline": 1,
+  "note": "1px solid line；clam 下 relief 必须 solid"
+ },
+ "elevation": {
+  "flat": "无阴影，靠 panel/card/line 三级明度分层",
+  "note": "复古皮肤不用投影；阴影会被读成『网页卡片』而不是『机身贴纸』"
+ },
+ "motion": {
+  "instant": 0,
+  "bannerFrame": 80,
+  "hover": 120,
+  "note": "只允许即时切换；不做位移/缩放动画"
+ },
+ "contrast": {
+  "standard": "WCAG 2.1 AA",
+  "pairs": [
+   {
+    "label": "主文本 / 窗口底",
+    "fg": "text",
+    "bg": "bg",
+    "min": 4.5
+   },
+   {
+    "label": "主文本 / 分区底板",
+    "fg": "text",
+    "bg": "panel",
+    "min": 4.5
+   },
+   {
+    "label": "主文本 / 卡片底",
+    "fg": "text",
+    "bg": "card",
+    "min": 4.5
+   },
+   {
+    "label": "主文本 / 次级卡片",
+    "fg": "text",
+    "bg": "card2",
+    "min": 4.5
+   },
+   {
+    "label": "次要文本 / 窗口底",
+    "fg": "muted",
+    "bg": "bg",
+    "min": 4.5
+   },
+   {
+    "label": "次要文本 / 分区底板",
+    "fg": "muted",
+    "bg": "panel",
+    "min": 4.5
+   },
+   {
+    "label": "次要文本 / 卡片底",
+    "fg": "muted",
+    "bg": "card",
+    "min": 4.5
+   },
+   {
+    "label": "弱化文本 / 窗口底",
+    "fg": "dim",
+    "bg": "bg",
+    "min": 3.0
+   },
+   {
+    "label": "弱化文本 / 分区底板",
+    "fg": "dim",
+    "bg": "panel",
+    "min": 3.0
+   },
+   {
+    "label": "弱化文本 / 卡片底",
+    "fg": "dim",
+    "bg": "card",
+    "min": 3.0
+   },
+   {
+    "label": "主强调 / 窗口底",
+    "fg": "cyan",
+    "bg": "bg",
+    "min": 4.5
+   },
+   {
+    "label": "主强调 / 分区底板",
+    "fg": "cyan",
+    "bg": "panel",
+    "min": 4.5
+   },
+   {
+    "label": "主强调 / 卡片底",
+    "fg": "cyan",
+    "bg": "card",
+    "min": 4.5
+   },
+   {
+    "label": "次强调 / 分区底板",
+    "fg": "magenta",
+    "bg": "panel",
+    "min": 4.5
+   },
+   {
+    "label": "次强调 / 卡片底",
+    "fg": "magenta",
+    "bg": "card",
+    "min": 4.5
+   },
+   {
+    "label": "数值色 / 分区底板",
+    "fg": "amber",
+    "bg": "panel",
+    "min": 4.5
+   },
+   {
+    "label": "数值色 / 卡片底",
+    "fg": "amber",
+    "bg": "card",
+    "min": 4.5
+   },
+   {
+    "label": "成功 / 分区底板",
+    "fg": "green",
+    "bg": "panel",
+    "min": 4.5
+   },
+   {
+    "label": "失败 / 分区底板",
+    "fg": "red",
+    "bg": "panel",
+    "min": 4.5
+   },
+   {
+    "label": "失败 / 卡片底",
+    "fg": "red",
+    "bg": "card",
+    "min": 4.5
+   },
+   {
+    "label": "选中文字 / 选中底",
+    "fg": "text",
+    "bg": "sel",
+    "min": 4.5
+   },
+   {
+    "label": "选中文字（别名） / 选中底",
+    "fg": "onSel",
+    "bg": "sel",
+    "min": 4.5
+   },
+   {
+    "label": "主按钮文字 / 强调底",
+    "fg": "onAccent",
+    "bg": "cyan",
+    "min": 4.5
+   },
+   {
+    "label": "主按钮文字 / hover 底",
+    "fg": "onAccent",
+    "bg": "accentHover",
+    "min": 4.5
+   },
+   {
+    "label": "主按钮文字 / pressed 底",
+    "fg": "onAccent",
+    "bg": "accentPress",
+    "min": 4.5
+   }
+  ]
+ }
+}
+</script>
+
+<script>
+(function () {
+  "use strict";
+
+  var T = JSON.parse(document.getElementById("design-tokens").textContent);
+  var PAL_KEY_ORDER = ["bg","panel","card","card2","line","text","muted","dim",
+                       "cyan","magenta","amber","green","red","sel"];
+  var PAL_LABEL = {
+    bg:"窗口底", panel:"分区底板", card:"卡片/输入底", card2:"次级卡片",
+    line:"描边", text:"主文本", muted:"次要文本", dim:"弱化文本",
+    cyan:"主强调", magenta:"次强调", amber:"数值", green:"成功", red:"失败", sel:"选中底"
+  };
+  var SEM_USE = {
+    "surface.base":"窗口底","surface.panel":"分区底板（Labelframe / 日志框）",
+    "surface.raised":"输入框、表格、文本域底（最亮）","surface.sunken":"次级卡片、按钮底、hover 槽",
+    "border.hairline":"所有 1px 描边、分隔线、滚动条滑块",
+    "text.primary":"正文、选中行文字","text.secondary":"辅助说明、表头、副标题",
+    "text.tertiary":"不可用 / 弱化（仅 3.0:1，禁用于正文）",
+    "accent.primary":"主强调：选中、进度、主按钮、分区标题",
+    "accent.secondary":"次强调：装饰、频谱另一端",
+    "accent.numeric":"数值 / 等宽文本（时长、大小、路径）",
+    "status.success":"成功","status.danger":"失败","selection.bg":"列表选中底",
+    "selection.fg":"选中底上的字（不是强调色）","on.accent":"强调底上的字"
+  };
+
+  var current = location.hash ? location.hash.slice(1) : T.color.default;
+  if (T.color.order.indexOf(current) < 0) current = T.color.default;
+
+  /* ---------- 颜色工具 ---------- */
+  function hex2rgb(h) {
+    h = h.replace("#", "");
+    if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+    return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+  }
+  function lum(h) {
+    var c = hex2rgb(h).map(function (v) {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126*c[0] + 0.7152*c[1] + 0.0722*c[2];
+  }
+  function contrast(a, b) {
+    var la = lum(a), lb = lum(b), hi = Math.max(la, lb), lo = Math.min(la, lb);
+    return (hi + 0.05) / (lo + 0.05);
+  }
+  function rgba(h, a) {
+    var c = hex2rgb(h);
+    return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + a + ")";
+  }
+  function theme() { return T.color.themes[current]; }
+  function resolve(role) {
+    var th = theme();
+    var key = T.color.semantics[role] || role;   // 语义名 → 代码键
+    return th.palette[key] || th.derived[key] || th.palette[role] || th.derived[role] || "transparent";
+  }
+
+  /* ---------- 应用主题 ---------- */
+  function applyTheme() {
+    var th = theme(), p = th.palette, d = th.derived, r = document.documentElement.style;
+    r.setProperty("--bg", p.bg);
+    r.setProperty("--panel", p.panel);
+    r.setProperty("--card", p.card);
+    r.setProperty("--card2", p.card2);
+    r.setProperty("--line", p.line);
+    r.setProperty("--text", p.text);
+    r.setProperty("--muted", p.muted);
+    r.setProperty("--dim", p.dim);
+    r.setProperty("--cyan", p.cyan);
+    r.setProperty("--magenta", p.magenta);
+    r.setProperty("--amber", p.amber);
+    r.setProperty("--green", p.green);
+    r.setProperty("--red", p.red);
+    r.setProperty("--sel", p.sel);
+    r.setProperty("--on-accent", d.onAccent);
+    r.setProperty("--accent-hover", d.accentHover);
+    r.setProperty("--accent-press", d.accentPress);
+    r.setProperty("--btn-bg", d["button.bg"]);
+    r.setProperty("--btn-hover", d["button.hover"]);
+    r.setProperty("--line-soft", rgba(p.line, 0.55));
+    r.setProperty("--text-08", rgba(p.text, 0.08));
+    document.documentElement.setAttribute("data-theme", current);
+    Array.prototype.forEach.call(document.querySelectorAll(".tbtn"), function (b) {
+      b.setAttribute("aria-pressed", b.dataset.k === current ? "true" : "false");
+    });
+  }
+
+  /* ---------- 顶栏主题按钮 ---------- */
+  function buildThemeBar() {
+    var bar = document.getElementById("themeBar");
+    T.color.order.forEach(function (k) {
+      var t = T.color.themes[k];
+      var b = document.createElement("button");
+      b.className = "tbtn";
+      b.dataset.k = k;
+      b.type = "button";
+      b.innerHTML = '<span class="chips">' +
+        '<i style="background:' + t.palette.bg + '"></i>' +
+        '<i style="background:' + t.palette.card + '"></i>' +
+        '<i style="background:' + t.palette.cyan + '"></i>' +
+        '<i style="background:' + t.palette.magenta + '"></i></span>' +
+        '<span>' + t.label.replace(/\s*\(.*\)/, "") + '</span>';
+      b.addEventListener("click", function () {
+        current = k;
+        // file:// 下 replaceState 可能被拒（SecurityError），失败就直接跳过，
+        // 不为了记住主题把整页脚本打断。
+        try { history.replaceState(null, "", "#" + k); } catch (e) { /* noop */ }
+        applyTheme(); renderAll();
+      });
+      bar.appendChild(b);
+    });
+  }
+
+  /* ---------- 色板 ---------- */
+  // 填色类（surface / border / selection）在 bg 上算对比度没有意义（≈1），
+  // 它们不参与「文字压在它上面」的判定 —— 所以比值只标在文字 / 强调 / 状态色上。
+  // 比值放在 chip 下方的 meta 行（card 底），这样绿/红才有对比度可言。
+  var FILL_KEYS = ["bg", "panel", "card", "card2", "line", "sel"];
+  function renderSwatches() {
+    var g = document.getElementById("swGrid");
+    g.innerHTML = "";
+    var base = resolve("surface.raised");   // 卡片底：文字最常落的地方
+    var FILL_LABEL = { bg: "填色", panel: "填色", card: "填色", card2: "填色",
+                       line: "描边", sel: "选中底" };
+    PAL_KEY_ORDER.forEach(function (k) {
+      var v = resolve(k);
+      var isFill = FILL_KEYS.indexOf(k) >= 0;
+      var ratio = contrast(v, base);
+      var on = lum(v) > 0.45 ? "rgba(20,18,26,.78)" : "rgba(255,255,255,.88)";
+      var badge = isFill
+        ? '<span class="ratio" style="color:var(--dim)">' + (FILL_LABEL[k] || "填色") + '</span>'
+        : '<span class="ratio ' + (ratio >= 4.5 ? "ok" : ratio >= 3 ? "warn" : "no") + '">' +
+            ratio.toFixed(1) + '</span>';
+      var el = document.createElement("button");
+      el.type = "button";
+      el.className = "sw";
+      el.title = "点击复制 " + v + (isFill
+        ? "（填色，不参与正文对比度）"
+        : "（在卡片底上的对比度 " + ratio.toFixed(2) + ":1）");
+      el.innerHTML =
+        '<span class="chip" style="background:' + v + ';color:' + on + '">' + v.toUpperCase() + '</span>' +
+        '<span class="meta"><span class="lk"><span class="role">' + PAL_LABEL[k] + '</span>' +
+        '<span class="key">' + k + '</span></span>' + badge + '</span>';
+      el.addEventListener("click", function () { copy(v); });
+      g.appendChild(el);
+    });
+  }
+
+  /* ---------- 语义表 ---------- */
+  function renderSemantics() {
+    var tb = document.querySelector("#semTable tbody");
+    tb.innerHTML = "";
+    Object.keys(T.color.semantics).forEach(function (sem) {
+      var key = T.color.semantics[sem];
+      var v = resolve(key);
+      var tr = document.createElement("tr");
+      tr.innerHTML = '<td class="m" style="color:var(--text)">' + sem + '</td>' +
+        '<td class="m" style="color:var(--muted)">' + key + '</td>' +
+        '<td style="color:var(--muted)">' + (SEM_USE[sem] || "") + '</td>' +
+        '<td class="m"><span class="swatch-dot" style="background:' + v + '"></span>' + v + '</td>';
+      tb.appendChild(tr);
+    });
+  }
+
+  /* ---------- 字体 ---------- */
+  function renderType() {
+    var box = document.getElementById("typeBox");
+    var sample = {
+      "font.title": ["输出设置", "spec-title"],
+      "font.body": ["绿色山丘 Green Hill Zone", "spec-body"],
+      "font.body-bold": ["开始转换", "spec-body-b"],
+      "font.caption": ["辅助说明：仅转换选中项", "spec-caption"],
+      "font.mono": ["02:31 · 1.8 MB · D:\\Music\\MSU1", "spec-mono"]
+    };
+    box.innerHTML = T.type.roles.map(function (r) {
+      var s = sample[r.token] || ["示例", "spec-body"];
+      return '<div class="type-row">' +
+        '<div class="t-met"><b>' + r.token + '</b><br>' + r.family + '<br>' +
+          r.sizePt + 'pt / ' + r.px + 'px · ' + (r.weight === 700 ? "bold" : "regular") + '</div>' +
+        '<div class="' + s[1] + '">' + s[0] + '</div>' +
+        '<div class="t-use">' + r.role + '</div>' +
+      '</div>';
+    }).join("");
+  }
+
+  /* ---------- 间距 ---------- */
+  function renderSpace() {
+    var box = document.getElementById("spaceBox");
+    box.innerHTML = Object.keys(T.space.scale).map(function (k, i) {
+      var v = T.space.scale[k];
+      return '<div class="space-row">' +
+        '<span class="mono" style="font-size:11px;color:var(--muted)">' + k + '</span>' +
+        '<span class="mono" style="font-size:11px;color:var(--text)">' + v + 'px</span>' +
+        '<div class="bar' + (i % 3 === 2 ? " alt" : "") + '" style="width:' + Math.max(2, v * 6) + 'px"></div>' +
+      '</div>';
+    }).join("");
+  }
+
+  /* ---------- 尺寸 ---------- */
+  function renderSizes() {
+    var box = document.getElementById("sizeBox");
+    box.innerHTML = Object.keys(T.size).map(function (k) {
+      var s = T.size[k];
+      return '<div class="stat" style="padding:9px 10px">' +
+        '<b style="font-size:15px">' + s.value + '</b>' +
+        '<span>' + k + ' — ' + s.note + '</span></div>';
+    }).join("");
+  }
+
+  /* ---------- 对比度表 ---------- */
+  function renderContrast() {
+    var tb = document.querySelector("#cTable tbody");
+    var pass = 0;
+    tb.innerHTML = T.contrast.pairs.map(function (p) {
+      var fg = resolve(p.fg), bg = resolve(p.bg);
+      var r = contrast(fg, bg);
+      var ok = r + 1e-9 >= p.min;
+      if (ok) pass++;
+      return '<tr>' +
+        '<td style="color:var(--muted)">' + p.label + '</td>' +
+        '<td class="m"><span class="swatch-dot" style="background:' + fg + '"></span>' +
+          '<span class="swatch-dot" style="background:' + bg + '"></span>' +
+          '<span style="color:var(--dim)">' + p.fg + " / " + p.bg + '</span></td>' +
+        '<td class="m" style="color:var(--text)">' + r.toFixed(2) + '</td>' +
+        '<td class="m" style="color:var(--dim)">≥' + p.min.toFixed(1) + '</td>' +
+        '<td class="m"><span class="ratio ' + (ok ? "ok" : "no") + '">' + (ok ? "PASS" : "FAIL") + '</span></td>' +
+      '</tr>';
+    }).join("");
+    document.getElementById("a11ySummary").textContent =
+      current.toUpperCase() + " · " + pass + "/" + T.contrast.pairs.length + " 组通过 · 正文 4.5:1 / 弱化 3.0:1";
+  }
+
+  /* ---------- 像素条 ---------- */
+  function renderPixels() {
+    var row = document.getElementById("pixelRow");
+    var html = "";
+    for (var i = 0; i < 26; i++) html += "<i></i>";
+    row.innerHTML = html;
+  }
+
+  /* ---------- 复制 ---------- */
+  function copy(text) {
+    var done = function () { toast("已复制 " + text.toUpperCase()); };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(done, function () { fallback(text, done); });
+    } else { fallback(text, done); }
+  }
+  function fallback(text, done) {
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); done(); } catch (e) { toast("复制失败：" + text); }
+    document.body.removeChild(ta);
+  }
+  var toastTimer = null;
+  function toast(msg) {
+    var t = document.getElementById("toast");
+    t.textContent = msg; t.classList.add("on");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove("on"); }, 1300);
+  }
+
+  /* ---------- 目录高亮 ---------- */
+  function initNav() {
+    var links = Array.prototype.slice.call(document.querySelectorAll(".rail a"));
+    if (!("IntersectionObserver" in window)) return;
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle("on", a.getAttribute("href") === "#" + e.target.id);
+        });
+      });
+    }, { rootMargin: "-80px 0px -70% 0px" });
+    Array.prototype.forEach.call(document.querySelectorAll("section"), function (s) { io.observe(s); });
+  }
+
+  function renderAll() {
+    renderSwatches(); renderSemantics(); renderContrast();
+  }
+
+  /* ---------- 启动 ---------- */
+  buildThemeBar();
+  applyTheme();
+  renderAll();
+  renderType();
+  renderSpace();
+  renderSizes();
+  renderPixels();
+  initNav();
+  if (T.meta && T.meta.generated) document.getElementById("genDate").textContent = T.meta.generated;
+})();
+</script>
+</body>
+</html>

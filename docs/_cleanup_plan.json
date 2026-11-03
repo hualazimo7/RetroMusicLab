@@ -1,0 +1,71 @@
+[
+  {
+    "tag": "B-构建产物",
+    "paths": [
+      "D:/workbuddy/MSU1Converter-20261019-v4.27 - international\\msu1-to-cd\\build",
+      "D:/workbuddy/MSU1Converter-20261019-v4.27 - international\\msu1-to-cd\\dist",
+      "D:/workbuddy/MSU1Converter-20261019-v4.27 - international\\msu1-to-cd\\output",
+      "D:/workbuddy/MSU1Converter-20261019-v4.27 - international\\msu1-to-cd\\tmp"
+    ]
+  },
+  {
+    "tag": "A-门禁残留(D盘)",
+    "paths": [
+      "D://MSU1Gate",
+      "D://MSU1Fresh"
+    ]
+  },
+  {
+    "tag": "A-Temp/_MEI*",
+    "paths": [
+      "C:\\Users\\xqh\\AppData\\Local\\Temp\\_MEI*"
+    ]
+  },
+  {
+    "tag": "A-Temp/rml_*",
+    "paths": [
+      "C:\\Users\\xqh\\AppData\\Local\\Temp\\rml_*"
+    ]
+  },
+  {
+    "tag": "A-Temp/_new6_check",
+    "paths": [
+      "C:\\Users\\xqh\\AppData\\Local\\Temp\\_new6_check"
+    ]
+  },
+  {
+    "tag": "A-Temp/*.tmp",
+    "paths": [
+      "C:\\Users\\xqh\\AppData\\Local\\Temp\\*.tmp"
+    ]
+  },
+  {
+    "tag": "A-Temp/*.wav",
+    "paths": [
+      "C:\\Users\\xqh\\AppData\\Local\\Temp\\*.wav"
+    ]
+  },
+  {
+    "tag": "A-D://MSU1Temp",
+    "paths": [
+      "D://MSU1Temp"
+    ]
+  },
+  {
+    "tag": "D-零散文件",
+    "paths": [
+      "D:/workbuddy/MSU1Converter-20261019-v4.27 - international\\msu1-to-cd\\kss2wav.pdb",
+      "D:/workbuddy/MSU1Converter-20261019-v4.27 - international\\msu1-to-cd\\qsf2wav.pdb",
+      "D:/workbuddy/MSU1Converter-20261019-v4.27 - international\\msu1-to-cd\\s982wav.pdb",
+      "D:/workbuddy/MSU1Converter-20261019-v4.27 - international\\msu1-to-cd\\wsr2wav.pdb",
+      "D:/workbuddy/MSU1Converter-20261019-v4.27 - international\\msu1-to-cd\\test_psf2.wav",
+      "D:/workbuddy/MSU1Converter-20261019-v4.27 - international\\msu1-to-cd\\test_ps1.wav",
+      "D:/workbuddy/MSU1Converter-20261019-v4.27 - international\\_shot_cloud.py",
+      "D:/workbuddy/MSU1Converter-20261019-v4.27 - international\\_tmp_spool_check.py",
+      "D:/workbuddy/MSU1Converter-20261019-v4.27 - international\\_build_v439.log",
+      "D:/workbuddy/MSU1Converter-20261019-v4.27 - international\\_shot_v5915_dl.png",
+      "D:/workbuddy/MSU1Converter-20261019-v4.27 - international\\_shot_v5915_home.png",
+      "D:/workbuddy/MSU1Converter-20261019-v4.27 - international\\_shot_v5916_home.png"
+    ]
+  }
+]

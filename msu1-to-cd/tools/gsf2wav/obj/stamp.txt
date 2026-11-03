@@ -1,0 +1,20 @@
+-O2
+-mcpu=baseline
+-w
+-include
+string.h
+-DMINIMAL_CORE=2
+-DM_CORE_GBA
+-DMGBA_STANDALONE
+-DDISABLE_THREADING
+-DCOLOR_16_BIT
+-DCOLOR_5_6_5
+-I
+D:\workbuddy\MSU1Converter-20261019-v4.27 - international\msu1-to-cd\tools\gsf2wav\src\mgba\include
+-I
+D:\workbuddy\MSU1Converter-20261019-v4.27 - international\msu1-to-cd\tools\gsf2wav\src\mgba
+-I
+D:\workbuddy\MSU1Converter-20261019-v4.27 - international\msu1-to-cd\tools\gsf2wav\src\psflib
+-I
+D:\workbuddy\MSU1Converter-20261019-v4.27 - international\msu1-to-cd\tools\gsf2wav\src\zlib
+-Dcrc32=mgba_crc32

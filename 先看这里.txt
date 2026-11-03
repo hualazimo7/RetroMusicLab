@@ -1,0 +1,887 @@
+# MSU1Converter 工程备份 —— v5.9.10-web（PyInstaller 正式线）
+
+打包时间：2026-10-26
+包名：`MSU1Converter-transfer-20261027.zip` —— **1251 个文件 / 79.3 MB**
+（源码 + 素材 + 8 个原生解码器 + 已打包的 63.8 MB exe + 全部门禁 + 踩坑记忆）
+用途：换一台电脑继续开发 / 直接运行。
+
+## 想直接跑
+
+**Web 版（新界面，推荐）**
+
+- `msu1-to-cd/dist/MSU1Converter-web.exe`    **Web 版 v5.9.10 · PyInstaller 线 = 正式版**，66,902,005 B（≈63.8MB），冷启动 **2~3 秒**
+  → 换机器就用它。PyInstaller 的引导程序是 MSVC 编译的 baseline 二进制，
+    任何 Win10/Win11 都能跑
+  ⚠ **这个 exe 必须和 `build/MSU1Converter-web-pyi/MSU1Converter-web.exe` 同一个 md5**
+    （2026-10-26 v5.9.10：`c2b22b2309761f959bed47a5bb0eade4`）。`build_web_pyi.py` **不会**
+    自动复制到 `dist/`，打完包忘了拷，dist 里就是上一版 —— v5.5 的 WSR 就是这么差点没发出去
+- ~~`MSU1Converter-web-Nuitka.exe`~~ **已删除**（2026-10-23 清理）。部分 CPU 上会
+  `0xC000001D`（CPU 不认识指令），连日志都不生成，现象和「双击没反应」一样（见 README ⚠50）。
+  要回滚就照 README 的结论用 `build_web.py` 重编，但**别当正式版发**
+
+**旧界面（留档）**
+
+- `msu1-to-cd/dist/MSU1Converter-v4.44.exe`  tkinter 版 v4.44（旧界面最后一版），≈65.5MB
+
+**怎么运行**
+
+直接双击 `MSU1Converter-web.exe` 就行。只有一个文件，不需要任何 bat 或脚本。
+冷启动 2~3 秒（本机 NVMe），换到慢盘或开着实时扫描的杀软上可能要 20~60 秒，
+这期间没有窗口、没有日志，属于正常现象，别急着判死。
+
+`msu1-to-cd/dist/bios/` 是 PSF 用的 BIOS 副本，**跟 exe 放在同一个目录**即可
+（程序会自动找到，不需要再手动指定）。
+
+**加音源的两个入口**（左栏底部）
+
+- `添加音源` —— 原生文件框，可多选文件
+- `添加文件夹` —— 原生文件夹框，**含子目录**。规则：
+  - 选中的文件夹本身就是一个「包」（PS1 下载包那堆 `.txtp`、MSU-1 的
+    `.pcm` 包、一叠平铺的 `.spc`）→ **整个文件夹算一个音源**，曲目在右侧
+    列表里，不会把 23 个 txtp 刷成一屏
+  - 文件夹里套着若干子包 → 自动展开，一个子包一个音源
+  - 递归深度上限 6 层，单次上限 5000 个音源
+
+⚠ **拖放拿不到路径，这是浏览器的硬限制**：`File.path` 是 Electron 的私有
+扩展，Chromium 从来没有过。我们是纯 Edge `--app` 窗口（不是 Electron），
+所以 `f.path` 永远是 undefined —— 拖单个文件也一样失败，不只文件夹。
+现在拖入后会**自动弹出原生选择框**并提示「浏览器不提供拖入文件夹的路径，
+请在弹框里选同一个文件夹」，选一次就好。想一步到位就直接点 `添加文件夹`。
+
+⚠ Web 版是「本地 HTTP 后端 + 浏览器应用窗口」，不是 Electron：
+无地址栏/标签页，外观就是一个独立窗口。**不再只认 Edge**（v5.2.0.6）：
+Edge → Chrome → Brave → Vivaldi（都是 Chromium，`--app` 外观完全一致）
+→ 系统默认浏览器 → 内置 tkinter 界面（最后一条路，老界面但保证能开）。
+
+## ⚠ 「双击没反应」怎么查（v5.2.0.6 起有日志了）
+
+**先记住一个数**：本机（NVMe SSD）从双击到写出第一条日志是 **1.92 秒**，
+其中 166MB 的自解压占了大头。换到慢盘 / 开着实时扫描的杀软上，这个时间会
+线性放大到 **20~60 秒** —— 这期间没有窗口、没有日志、没有任何反馈，
+和「彻底没反应」长得一模一样。**所以先等 30 秒，别急着判死。**
+
+排查顺序（从快到慢）：
+
+1. **先等满 30 秒**，然后看 `logs\startup.log` 有没有生成、最后一行是什么。
+   有日志 = 程序在跑，只是窗口没弹出来（看日志里的「外壳浏览器 = 」那一行，
+   浏览器找不到就会走到内置 tkinter 界面）。
+2. **没有日志** → 打开任务管理器搜 `MSU1Converter-web`：
+   - 进程在 → 卡在解压或杀软扫描，继续等，或把 exe 加进杀软白名单
+   - 进程闪一下就没了 → 这台机器拦自解压（Smart App Control / 企业策略），
+     关掉 SAC 或加白名单；改代码没用
+3. **三处日志都没有** → `logs\`（exe 旁边）、`%LOCALAPPDATA%\RetroMusic Lab\logs\`、
+   `%TEMP%\RetroMusic Lab\`，逐个看一遍。仍然没有就说明 Python 代码一行都没跑到。
+
+窗口程序没有控制台，以前崩了就是「桌面闪一下什么都没发生」。现在每次启动都会写
+**`<exe 旁边>\logs\startup.log`**（写不进去就退到 `%LOCALAPPDATA%\RetroMusic Lab\logs\`
+或 `%TEMP%\RetroMusic Lab\`），里面每一步都有：
+
+```
+[17:07:57] 启动 MSU1Converter-web
+[17:07:58] step: import msu1_to_cd
+[17:07:58] step: 临时目录 = D:\MSU1Temp
+[17:07:58] 服务已起：http://127.0.0.1:47913/
+[17:07:58] 外壳浏览器 = Edge · C:\Program Files (x86)\Microsoft\Edge\...
+[17:07:58] 拉起 msedge.exe --app=http://127.0.0.1:47913/
+```
+
+**最后一行的内容就是「走到哪一步」**。崩了还会弹一个消息框（含错误摘要 + 日志路径）。
+
+两个命令行参数：
+
+| 参数 | 作用 |
+|---|---|
+| `--console` | 临时开一个控制台，全过程都打出来（从 cmd 里跑效果最好） |
+| `--tk` | 跳过浏览器，直接用内置 tkinter 界面（老界面，但零依赖） |
+
+✅ **「音源下载」窗口已整套移植**（v5.1 第二版）：主界面点「从网络下载」→
+跳到 `/download.html`，32 个机种 / 全量条目列表 / 中文名 / 批量勾选 /
+并发数 / 自动解压 / 自动转 WAV / 上传云盘 全在。内置索引快照（2.1MB）打在包里，
+**不联网也能列列表**。
+
+✅ **机种表重构（v5.9）：30 → 33，一个站搞定全部**。四件事：
+
+1. **删掉 PS5** —— 它从来没有独立子站，原来指向 apex `joshw.info`，
+   而 apex 现在 https 连不上、http 只回一个 102 B 的 `🤔` 占位页。
+   这个机种从加进来那天就是死的，只是没人点到。
+2. **加上 Nintendo Switch** —— `switch.joshw.info`，27 个字母目录，实测 **3512 条**。
+   ⚠ 只下载 / 解压，**不转 WAV**（没有对应解码器，`chip_support("Switch") == "no"`）。
+3. **kss 拆成 3 条** —— `kss.joshw.info` 根下直接是 `Game Gear/` `MSX/` `Master System/`，
+   原来整站只算一条「MSX」。拆开后 Game Gear **231 条**、Master System **151 条**。
+   机制是给 `_pf` 加了 `path` 字段（`base_url()` 按段做百分号编码，
+   `Game Gear` 有空格、`!MDScene_Arcade_VGM` 有叹号，不编码 Apache 直接 400）。
+4. **hoot 只拆出 2 条，不是 19 条** —— 根下 19 个目录里**只有 2 个是 `.7z` 音源**
+   （`!MDScene_Arcade_VGM` 街机 VGM 1450 条、`qsf` QSound 18 条），
+   其余 17 个（`X68k` `fm7` `pc98` `spectrum` `roms` …）装的是
+   **Hoot 播放器的 `.zip` ROM 包**（`albatrss_fm7.zip`、`180_ZX.zip`），
+   不是提取好的音源，我们也没有 Hoot 模拟器 —— 收了就是「下几百 MB 转不了」。
+
+⚠ **Zophar 原声组撤了**（v5.9）。v5.7 接它的理由是「joshw 没有 GG/SMS」，
+后来发现 joshw **一直有**，只是藏在 kss 容器目录里。前提没了，两家都列只会
+让用户多纠结一次「为什么这条没体积」。`zophar_source.py` 没删
+（解析逻辑还有测试价值，`test_zophar.py` 90 项仍全过），只是不进机种树。
+⚠ 顺带修了真 bug：KSS 没有真实曲目数（libgme 硬编码 256），joshw 的 GG 包习惯
+「一首一个 m3u」（`01 BGM #01.m3u`），原来只认 `<同名>.m3u` / `!playlist.m3u`，
+于是 21 首变成 266 首空白轨道（6.6GB / 246 秒）。修完 21 首 / 225MB / 11.7 秒。
+详见 README ⚠63 / ⚠65。
+
+✅ **下载页列表不再截断（v5.9.1）—— 800 行上限换成虚拟滚动**。
+以前列表最多渲染 800 行，底部写「还有 N 条未显示 —— 用搜索缩小范围」，
+Switch 的 3512 条里有**八成根本翻不到**。现在只渲染可视窗口那几十行
+（`.dl-vs` 撑假高度 = 总条数 × 27px，`.dl-vs-win` 用 translateY 定位），
+多少条都能滚到最后一条，DOM 节点数恒定（实测 3512 条时只有 35 个行节点）。
+三个必须记住的点：
+1. `ROW_H = 27` 必须与 CSS `.dl-row { height: 27px }` 一致，改行高要两处一起改；
+2. 过滤结果 `S.idx` 存**下标不存行对象** —— `poll()` 每 300ms 换新数组，
+   存旧引用会让「滚出去再滚回来」的行显示上一次的选中/状态；
+3. 滚动用 rAF 合并，且只在可视区离开已渲染窗口的「内芯」（上下各 4 行余量）
+   时才重建，否则每滚 1px 就重建 60 行 DOM，滚轮一推就掉帧。
+后端 `dl_api.MAX_ROWS` 4000 → 12000，**定位从「显示上限」改成「安全阀」**
+（防止某个机种涨到几万条把 300ms 一次的轮询 JSON 撑爆）。
+⚠ tkinter 版 `msu1_gui.py` 仍是 4000，**两边不同口径是故意的**，别去「对齐」。
+新门禁：`vendor/_e2e_virt_rows.py`（真起 Edge / 真滚 / 真读 DOM，13 项全过）。
+
+✅ **试听列表可以清空（v5.9.2）—— 只隐藏，不删文件**。
+右侧「试听」标题栏从一颗 `刷` 变成 `清空` + `刷`。用户报的是「转出的 wav
+列表会一直保留」，但**不能顺手删文件**：WAV 是用户要拿去用的产物（传云盘、
+压 MSU-1 包），点一下「清空」删几百 MB 是不可逆的。
+做法是**按 WAV 根目录记一个时刻**（`_wav_cleared`），列表只显示 mtime 晚于它的
+文件 —— 于是「清空后新转的照样出现」「重转同一首会回来」「切机种各算各的」。
+记录落盘 `%LOCALAPPDATA%\MSU1Converter\wav_cleared.json`（只在内存里记等于白点一次）。
+⚠ 踩到一个隐蔽的坑：`loadWavs()` 用 `sig === S.wavSig` 判「列表没变就跳过重建」，
+而清空后签名正好是空串，和「强制重建」的哨兵 `""` 撞了 → 提前 return，
+**计数变 0、列表还是旧的**（实测截图抓到的）。哨兵改成 `null` 才对。
+这个坑在 v5.9.2 之前就有：WAV 全删掉再点「刷」，列表也不会清空，只是没人试过。
+新门禁：`vendor/_e2e_wav_clear.py`（真起 Edge、真点按钮，13 项全过，
+其中一条是**直接数磁盘**确认文件一个都没少）。
+
+✅ **SPC 包转换不再「0% 卡住」（v5.9.5）**。
+用户拿 92 首的 SPC 包（Chrono Trigger）点开始转换：进度一直 `0%`，日志停在
+`▶ [1/1]`，CPU 却是满的 —— 看着就是死机。**两个原因叠在一起**：
+
+1. **进度没接下去**。`load_source()` 的 `.spc` 目录分支是裸调 `load_spc_dir(path)`，
+   `on_progress` 压根没传 —— 而 `load_spc_paths` 本身是支持的（每批结束都回调）。
+   于是整个解码阶段一次上报都没有，进度条钉死在 0%。
+2. **白解 4 倍时长**。默认策略 `natural` = 解到「连续 2 秒静音」为止；循环曲永远
+   等不到静音 → 撞兜底上限 `_SPC_MAX_SECS = 600`（每首 10 分钟），而
+   `write_tracks()` 随后只留前 150 秒 → **450 秒白解**。92 × 600 秒 = 15.3 小时音频。
+
+修法：`on_progress` 接下去；新增 `decode_cap`（= 单曲最长 + **2 秒余量**）一路透传到
+`--spc-cap`。**只当上限用**（`stop_on_silence` 不变），所以短曲照样按静音收尾，
+成品**逐字节不变**。那 2 秒余量不能省：`_limit_len` 只在「超长」时才截断并加 1.5s 淡出，
+正好解到 150 秒反而不触发截断、成品少一截淡出。
+
+实测：8 首样本端到端 89.8s → **25.6s**；92 首整包解码 241.5s + 写盘 30s ≈ **4.6 分钟**
+（旧逻辑约 17 分钟），8 个 WAV 的 md5 全同。
+
+⚠ 顺带修掉一个被上面的改动**放大**出来的显示错误：曲目表的「已输出 / 转换中 / 等待」
+原来是拿进度反推的（`floor(progress/100 × 曲目数)`，注释还写着「和实际一致」）。
+解码阶段以前不报进度，反推碰巧一直对；现在进度 35% 时**一个文件都没写**，
+界面却说「已输出 32 首」—— 第一版交付图就是这么拍出来的，比原来还离谱。
+修法：`ConvertJob` 的 `on_track(i, n)`（每写完一个 WAV 调一次）以前在 server 里被写成
+`lambda i, n: None` **丢掉了**，现在记成 `state.done_tracks` 放进 `/api/state`，
+`app.js` 按它显示（老后端没这个字段时仍退回反推）。
+新门禁：`vendor/test_web_ui.py` 的 `[3o]` 14 项 + `check_web_exe.py` 2 项
+（直接拿 exe 跑 `--spc-cap`，验「认参数」和「真的提前停手」）。
+
+✅ **FLAC 输出（v5.9.7）—— 主界面和下载页都能选**。
+用户说「给主界面和下载音源界面都加一个转 flac 格式功能」。
+
+- **只换容器，不换音频**：仍是 16bit / 44100Hz / 立体声，逐样本无损，
+  解回来与原始 PCM **逐字节相同**（实测 `np.array_equal` 为真），体积 **35%**。
+- 主界面右栏三张卡片，**1 + 2 布局**：BIN+CUE 独占一行（另一种产物），
+  WAV / FLAC 并排且**互斥**（同一段音频的两种容器，同时勾只会写两份）。
+  三列的话 340px 右栏每格只剩 ~100px，「BIN + CUE」会被截断。
+- 下载页 `dlAutoWav` / `dlAutoFlac` 两个复选框互斥；`dlMerge` 跟着 WAV 走
+  （合并用标准库 `wave` 读盘，读不了 FLAC）。按钮文案、状态列都跟着格式变。
+  > ⚠ **这两个复选框已在 v5.9.9 删除**，换成工具条上两颗独立按钮「转 WAV」「转 FLAC」。
+  > 本段保留原样，只为说明 v5.9.7 当时是怎么做的。
+- 新模块 `flac_out.py`（不依赖 `netease_cloud`，那个会拖 pycryptodome）。
+  **从内存 PCM 直写**，不先落 WAV 再读回 —— 省一整次磁盘往返（33 首 ≈ 860MB）。
+- 写盘收口仍是 `spc_wav.write_tracks(..., fmt="wav")`，两页共用同一个函数。
+
+⚠ 五个只在真实转换时才炸的坑（README ⚠72 有完整版）：
+① `sf.read(dtype="int16")` 不能省，过 float32 会被加 dither（文件能播但**不等于原文件**）；
+② 下载页 `wav_scan_numbering` 只扫 `.wav` → FLAC 模式第二轮从 1 重来，**覆盖上一轮**
+（R7 老 bug 换个扩展名复发）；③ `merge_wav` 读不了 FLAC，不强制关就每首失败刷屏；
+④ 磁盘门禁按 WAV 估 FLAC 高估 3 倍 → 盘够却判空间不足 → **放弃剩余曲目**；
+⑤ 下载页「已转」状态只认 `.wav` → 选了 FLAC 每行都显示「未转」。
+⚠ 还有个「位置」坑：`fmt` 必须是 `write_tracks` 的**最后一个参数** ——
+`convert()` 内部是位置传参，插中间会把 `log` 当 `cancel` 传进去（不报错，
+只是没日志、取消失灵）。
+新门禁：`vendor/test_web_ui.py` 的 `[3q]` 48 项 + `check_web_exe.py` 5 项；
+真写盘/真解码的验证在 `vendor/_probe_flac.py`（29 项）。
+
+✅ **Capcom QSound 街机音源能转了（v5.9.10）**。
+新增 `.qsf` / `.miniqsf`（CPS1 / CPS2 的街机 BGM）。用户给的样本是
+`D:\MSU1Downloads\joshw\QSound 街机（Hoot）\Mega Man 2 - The Power Fighters …`，
+45 首全部解码成功。
+
+**QSF 是 PSF 家族的一员**（版本字节 `0x41`），和 PSF/USF/2SF/SSF/GSF 同一套思路：
+里面没有波形，要跑模拟器。唯一区别是 program section 里放的不是可执行程序，
+而是一串「11 字节块头 + 载荷」的**块**：`Z80`（程序 ROM）/ `SMP`（采样 ROM）/
+`KEY`（CPS1 的 Kabuki 密钥）。`.miniqsf` 那 12 字节**不是程序、是补丁** ——
+往 Z80 ROM 偏移 `0x21` 写一个字节（曲号），45 首的差异就只有这一个字节。
+
+**⚠ 本轮真正的难点是采样率。** QSound 原生输出 **24038 Hz**，这个数不是笔误，
+是 QSound DAC 的硬件节拍（`60000000/2/1248 = 24038.46`）——
+混音器每输出一个样本就按它推进一次 DSP，**改大只会让整首变调**。
+所以按「与其他机种一致」的要求，重采样放在解码器内部做：
+64 抽头 Kaiser 加窗 sinc 多相 FIR（1024 相位、β=9、截止 0.45×源率、
+32.32 定点累加、每相位归一化到直流增益 1）。出厂直接出 44100，
+`spc_wav.write_tracks()` 那层一行都不用改。
+代价是解码慢三分之一（62 分钟音频 38.7 秒 → 59.2 秒，96× → 63× 实时）。
+
+**不需要 BIOS** —— QSound 是街机板上的独立声音子系统，没有主机 BIOS 这回事。
+这条有门禁守着：`qsf_native` 里没有 `find_bios` / `set_bios` / `check_bios`，
+diag 的 `qsf` 段没有 `bios` 字段，坏文件的报错文案**不许出现 BIOS**。
+
+实测：45/45 成功、0 静音、peak 3,201~9,532（约 −10.7 dBFS）、
+时长与 `length`+`fade` 标签全部一致（±20 ms）、同一首解两次逐字节相同。
+
+接进了**四条**流水线（少一条就出「Web 能转、下载页转不了」那种老问题）：
+`convert_job.py`（主界面）、`dl_convert.py`（下载页）、`joshw_dl.py`
+（`_PAYLOAD_EXTS` 补 `.miniqsf`/`.qsflib`，否则每次都重复下载）、
+`web_ui/server.py`（diag）。详见 README ⚠75。
+
+✅ **两颗独立转换按钮 + 目录分离（v5.9.9）**。
+用户提了两件事：① 把下载页「下载后自动转 WAV / FLAC」两个复选框删掉，改成两颗
+独立按钮放在「上传云盘」旁边；② 某个游戏转过 WAV 之后就再也转不出 FLAC，
+会被直接跳过 —— 要能任选一种、也能两种都转。顺带指定了落盘位置：
+WAV → `joshw\<机种>\WAV\<游戏名>\`，FLAC → `joshw\<机种>\FLAC\<游戏名>\`。
+
+**② 的根因**是「记账共用」。`dl_convert.ConvertManifest.already_done(src)` 判的是
+「这个**源文件**转过没有」，两条校验缺一不可：① 源文件 `(mtime, size)` 指纹一致；
+② 记账里的产物**至少一个仍在磁盘**。而记账文件 `.msu1-convert.json` 放在
+**输出目录**里 —— 两种格式共用 `WAV/` 就等于共用一份记账，转完 WAV 后两条全中，
+再点 FLAC 直接判「已转过」跳过，**一个文件都不出也不报错**。
+
+**修法不是加 if 绕过检查**，是把判重放回它该有的粒度：目录分开 = 记账分开 =
+互不干扰。`_out_dir(fmt)` 统一算 `<保存目录>/WAV` 或 `<保存目录>/FLAC`，
+`convert_wav(urls, fmt)` 按 fmt 选根，`_refresh_disk()` 同时扫两个根
+（`_wav_games` / `_flac_games`），`wav_list` / `wav_path` / `wav_games` / `wav_add` /
+`open_dir_target` 全部改成「同时认两个目录」。
+
+⚠ **三个只在真点按钮时才暴露的坑**：
+① 状态列在 `cv_file_done` 里**写死** `"🎵 已转 WAV"` —— 点「转 FLAC」时这一行说谎，
+用户会以为按钮没生效。改成 `"🎵 已转 " + self._pending_tag()`；
+② 就算改了文案，转换过程那条**运行期状态**会一直盖住磁盘快照，先转 WAV 再转 FLAC
+最后仍显示「已转 WAV」。所以收尾扫盘后要 `_drop_cv_states()` 把它摘掉，交给
+`_disk_state()`（它同时看两个目录，能说「🎵 已转 WAV+FLAC」）。只摘「🎵 已转 …」，
+`⚠ 转换失败` 这类磁盘看不出来的必须留着；
+③ 状态列原来是「先写日志、后扫盘」，`_finish()` 里日志在 `_refresh_disk()` **之前** ——
+截图脚本一看到「转 FLAC 完成」就立刻读状态列，读到的是上一轮的快照。产品上无感
+（前端 300ms 轮询会收敛），但**验证脚本必须轮询等它收敛**，否则拍出来的图是错的。
+
+⚠ 老版本混在 `WAV/` 里的 `.flac` 照样认（`flac |= _games_with(wav_dirs, (".flac",))`），
+不用手动整理。
+
+新门禁：`test_web_ui.py` 的 `[3q]` ⑥ 重写 + 新增 ⑥b（目录分离 6 项）+ ⑪（记账回归
+4 项）+ **⑪b（状态列 7 项）**，共 **762 / 0**；`vendor/_probe_fmt_dirs.py`（29 项，
+真转 10 首 WAV 再转 10 首 FLAC，验两目录互不干扰 + 状态列 + 同格式重转仍跳过）；
+`vendor/_shot_v599.py`（真点两颗按钮 + 拍 3 张交付图）。
+⚠ 顺带记一个环境坑：开发机的删除护栏按「每轮 50 次」限流，门禁一次跑全量必然在
+`t_bios_bundle` 附近被掐（无汇总行、无 `[!!]`、`exit=1`）。新增
+`vendor/_gate_split.py --all` 把门禁拆成 A/B/B2/C 四段各起新进程跑，
+762 = 113 + 290 + 19 + 340。
+
+✅ **下载页频谱面板修好了（v5.9.8）**。
+用户报「可视化失效」并附了截图：歌在放（进度在走、有声音），但下载页右边
+「频谱 / 波形」**整块不见了** —— 连标题和开关按钮都没有。主界面没事。
+
+根因是**闭环正反馈**，跟音频、跟 Web Audio 一点关系都没有：
+
+- `viz.js` 的 `resize()` 量 canvas 的 `getBoundingClientRect()`，乘 dpr 写回
+  canvas 的 `width` / `height` **属性**；
+- 而 canvas 的 CSS 尺寸在**没有任何样式约束**时，恰恰由这两个属性决定；
+- → 300 → 375 → 469 → … 每帧 ×1.25（用户屏幕 dpr），60fps，
+  **0.35 秒涨到 32545 × 16358**，把 flex 侧栏撑破，面板被 `overflow:hidden` 裁掉。
+
+主界面为什么没事：`app.css` 里写了 `#vizCanvas { width:100%; height:100% }`，
+**ID 选择器**把尺寸钉死了；下载页的 canvas 叫 `#dlVizCanvas` —— 不匹配。
+
+三处修法（治本 → 兜底）：
+1. `app.css`：`#vizCanvas` → **`.viz-wrap > canvas`**（按结构选，两页一起覆盖）；
+2. `viz.js`：`resize()` 改量 **`opt.wrap` 的 `clientWidth/clientHeight`**，与 canvas
+   自身属性彻底解耦，链条直接断掉；
+3. `viz.js`：加 `MAXPX = 4096` 钳制 —— 真失控了也只坏一块面板，不坏布局。
+   另给 `.viz-wrap` 和 `.dl-viz` 补 `min-width: 0`（flex 子项默认 auto，会被顶破）。
+
+⚠ **上一轮为什么没发现**：`_shot_v596.py` 只验了「canvas 两帧像素指纹不同 =
+真的在动」—— 而**爆掉的 canvas 每帧也在变**，照样通过。教训：
+验证「在动」不够，还得验「动得对不对」（尺寸是否合理）。
+现在 `vendor/_probe_viz_fix.py` 直接量渲染尺寸，门禁里也加了 6 条静态断言
+（结构选择器 / min-width / 量容器 / MAXPX），谁再动这块样式会当场红。
+
+数据对比：canvas CSS 尺寸 **32545×16358 → 334×118**；面板 336 ≤ 侧栏 356；
+整页横向滚动条消失（1346 = 1346）；主界面 301×148 未受影响。
+
+✅ **右栏换成频谱面板（v5.9.6）—— 删掉两个假选项，主界面和下载页都有**。
+用户说右栏那两个「看着有、其实没用」，删掉腾地方做个「炫彩的可视化、可选窗口」
+展示试听音频的频谱与波形。后来又补一句「同样的可视化图也要加到下载音源界面里去」。
+
+- 删 `#spMax`（单曲最长）/ `#spSpeed`（速度补偿）。行为不变：仍 150 秒 / 仍不补偿。
+  字段名保留在 `collectOpts()` 里写死 —— 删了字段名后端会退回自己的默认值。
+- 新增 150px 高的 `<canvas>`：48 根频谱柱（`i^1.85` 对数取样）+ 一条波形线 +
+  峰值保持。颜色从主题的 `--accent` / `--accent-2` 取，换复古主题跟着变。
+- 标题右边一颗开关，状态记 localStorage，关掉只是不画（分析链一直连着，声音照常）。
+- 右栏 292 → **340px**，`输出格式` 两张卡片压成单行，PS1/PS2 那段说明收成一行。
+- **实现抽到 `web_ui/viz.js`（`window.VizKit.create`），两页共用**：主界面
+  `#vizCanvas`（150px，key `msu1.viz`）、下载页 `#dlVizCanvas`（120px，key
+  `msu1.dl.viz`）。不各写一份的理由和 `theme.js` 一样 —— 复制两份迟早长得不一样。
+
+⚠ 三个只在真实点击时才炸的坑：① `collectOpts()` 里残留 `$("#spMax").value`
+（DOM 没了就是 `null.value`，点「开始转换」直接抛）；② `createMediaElementSource`
+之后忘了 `connect(destination)`（频谱很漂亮但**没声音**）；③ 暂停/关面板没
+`cancelAnimationFrame`（60fps 空转）。
+⚠ 抽公共模块还多一个坑：**`viz.js` 必须进三处静态白名单**（`server.py` 的
+`STATIC_OK` + `build_web_pyi.py` / `build_web.py` 的 `WEB_STATIC`），漏一处
+两个页面一起 `VizKit is not defined`，而 HTML 本身看着完全正常。
+新门禁：`vendor/test_web_ui.py` 的 `[3p]` **41 项**（纯静态，`--fast` 也跑）；
+`check_web_exe.py` 加 5 条（154 → 159，v5.9.7 再 +5 → **164**），其中一条专门验 `GET /viz.js`。
+
+✅ **每一行都有按钮了（v5.9.4）—— 转 WAV / ＋试听 / 上传自己挑游戏**。
+用户报的三件事其实是同一类毛病：**功能之间靠「下载时勾的选项」串起来，勾晚了
+就再也没有入口**。
+
+1. 「下载后自动转 WAV」是个**下载前**的复选框。忘了勾只能把整个机种重下一遍
+   （几百 MB），而文件明明已经在盘上。现在列表最后一列「操作」按状态给按钮：
+
+       ✓ 已下载 / 📦 已解压  → 转 WAV（不重新下载）
+       ⚠ 转换失败           → 重转
+       🎵 已转 WAV          → ＋试听（加进右侧试听列表）
+       ⏳ 待转 WAV          → 转换中（灰）
+
+   源文件按三级退让：包在没解压→先解压；包在已解压→直接用；
+   **包没了只剩 `<包名>\`→扫解压目录**（勾了「解压后删除原压缩包」的人）。
+   第三条最容易漏 —— 只按包找会说「还没下载」，用户看到的是颗没反应的按钮。
+   ⚠ 一个文件都没入队时**不会再有 `cv_thread_exit`**，必须自己 `_finish()`，
+   否则界面永远停在「进行中…」且「开始下载」一直是灰的（门禁 `[3n]` 盯这条）。
+
+2. 试听列表原来只有「mtime 比清空时刻新」一个来源，**清空之后就再也加不回来**。
+   现在手动加入的曲目记在 `%LOCALAPPDATA%\MSU1Converter\wav_picks.json`，
+   `wav_list()` 对它们**不看 mtime**，直接放行。清空会把这份记录一起清掉
+   （「清空」就该是空）。
+
+3. **「这个目录里没有 WAV」的正身**：v5.2 起产物按游戏分目录
+   （`WAV/<游戏名>/xx.wav`），`dl_api.upload_cloud()` 跟着改成了 `os.walk`，
+   **但 `cloud_upload.collect_wavs()` 没改** —— 它只 `os.listdir` 一层，
+   而 `WAV/` 底下全是目录、一个 .wav 都没有。`/api/cloud/plan` 是上传流程的
+   第一道门，它先返回「没有 WAV」，后面那个已经改好的 `os.walk` 根本没机会跑。
+   所以现象是「试听能放，上传说没有」。
+   改法：`collect_wavs(*folders, deep=False)` 加一个**默认关**的递归开关，
+   `_cloud_plan` 显式传 `deep=True`（默认不能改 True —— tkinter/Qt 的输出目录
+   是扁平的，改默认值会把子目录里的备份也传上去）。
+
+4. 上传云盘现在先弹「选择要上传的游戏」：默认全选、可全选/全不选、实时显示
+   「已选 N 个游戏 / M 首」，再选「合并/分轨/全传」。
+   ⚠ `wav_games()` 第一版走了 `wav_list()`，于是**清空试听会把上传对话框也变空**
+   —— 正是要修的 bug 的另一种形态（实测踩到）。现在它直接扫 `WAV/` 目录。
+
+界面细节：列表新增「操作」列 52px（状态列 104→96px）；按钮平时 `opacity: .85`
+就看得见（不做成 hover 才出现，否则等于没入口）；`paintState()` 每 300ms 跑一遍，
+按钮只在「该显示什么」变了时才重建（无脑 `innerHTML=""` 会把正按着的按钮摘掉）；
+按钮 `onclick` 必须 `stopPropagation()`（整行点击 = 勾选）。
+新门禁：`vendor/_e2e_row_actions.py`（53 项，含真解码 2 次）。
+
+✅ **「状态」列会记住你下过什么（v5.9.3）—— 重启不丢，保存目录跟着你走**。
+中间那列「状态」以前只有内存一份（`self.states`，下载/解压/转换时边跑边写），
+进程一退就空 —— 用户看到的就是「重启后整列空白，不知道哪个已经下过」。
+现在 **运行期状态优先、没有就从磁盘算**：
+
+    ✓ 已下载      压缩包在保存目录里
+    📦 已解压      解压目录 <包名>\ 在（**包删了也认** —— 勾了「解压后删除原压缩包」的人）
+    🎵 已转 WAV    WAV\<游戏名>\ 里**真的有 .wav**（空目录不算，那是转换失败留下的）
+    （空白）      还没下过
+
+三个容易踩空的点，这版都处理了：
+1. `_wav_games` 必须确认目录里真有 `.wav`，只看「目录存在」会把转换失败的空目录
+   报成「已转 WAV」，用户去试听发现是空的；
+2. **保存目录填哪一层都得能扫** —— 用户可能填成 `D://MSU1Downloads`（离包 2 层）、
+   `…\joshw`（1 层）、`…\joshw\Super Nintendo`（0 层）或完全自定义路径。
+   第一版只 scandir 一层，填成根目录时**一条都扫不到**，看着跟「状态列又坏了」
+   一模一样。现在向下扫 3 层（`DISK_SCAN_DEPTH`），四种填法全覆盖；
+3. **有界**：万一填成 `D://`，无界递归会扫几分钟并卡死。三重上限
+   （3 层 / 6 万条目 / 2.5 秒），撞上了在界面上说「只扫了一部分」。
+
+保存目录记在 **exe 旁边的 `dl_prefs.json`**（`root` / `dest` / `manual` 三项，
+**不存选项** —— 并发数跟机器性能有关，换机沿用上一台的选择容易出意外）。
+路径找不到时按四级找回：原样在 → **只换盘符（保留整条相对路径）** → exe 旁/盘根 →
+有界深搜（3 层 / 0.9 秒 / 跳过系统目录）。找回成功会写一行
+`📁 下载根目录已自动找回：旧 → 新` 并把新位置写回 prefs。
+⚠ 第 2 级是最常见的形态（新机器只有一块盘），**保留整条相对路径**比只认 basename
+精确得多 —— 一开始只做了第 3、4 级，`D://Games//MSU1Downloads` 在
+`E://Games//MSU1Downloads` 就找不回来。
+⚠ `_local_drives()` 用 `GetLogicalDrives()` 位掩码，**不逐个 isdir 探测**：
+断开的网络映射盘上 `os.path.isdir("Z:////")` 能卡好几秒，界面会假死。
+⚠ 性能：加了磁盘判定后 4000 行快照要 34ms（每 300ms 轮询一次 = 烧掉一个核的
+十分之一）。加了记忆化后 **34ms → 8.6ms**，缓存必须在磁盘快照变化时清掉，
+否则新下完的包一直显示「没下过」—— 门禁里有一条专门盯这个。
+新门禁：`vendor/_e2e_disk_state.py`（37 项，其中「重启后状态列一条不差」是
+**新建实例、内存状态为空**验的，不是「看着像对」）。
+
+✅ **KSS 换了解码器（v5.8）—— GG / SMS 那批有三成原来根本解不出来**：
+libgme 的 KSS 实现**只映射 0x0000-0x3FFF 与 0x8000-0xBFFF，不映射 0x4000-0x7FFF**。
+ROM 落在中间 16 KB 的 KSS（32 KB 的 GG rip 几乎都是）代码被丢掉一半，Z80 跑飞 ——
+而 libgme **不报任何错**，每轨精确静音（peak == 0）。上层只能报
+「解码零产出，文件可能损坏或格式不受支持」，**把解码器的缺陷说成了素材的错**。
+现在 `.kss` 走外挂解码器 `kss2wav.exe`（libkss，298 KB，zig 编），
+`.sgc` 仍走 libgme（它支持良好，没必要多起一个进程）。
+实测 Zophar 的 `Game Gear/Puyo Puyo` 从「零产出」变成 **18 首 / 194.1 MB**；
+抽 12 个 GG 包，原来 **3/12 静音**，现在全通。
+⚠ libkss 混音比 libgme 低约 12 dB，统一乘 `GAIN = 4.0` 再 clip，与其它格式响度对齐。
+⚠ 顺手修了 m3u 编码误判：原来「utf-8-sig → cp932 → latin-1，能解就用」，
+但 **cp932 几乎不会失败**（单字节 0xA9 → 半角片假名 `ｩ`），zophar 的 latin-1 包
+永远轮不到第三分支，曲名变成 `Puyo Puyo - ｩ1993` 还顺着进了文件名。现在是 `©1993`。
+详见 README ⚠64。
+
+✅ **PSF 系已原生解码，不再转手**（v5.1-web-psf）：Web 版自带 `psf2wav.exe`
+（psflib + Highly Experimental，用 zig 编的，452 KB），`.psf` / `.minipsf`
+和 SPC / 镜像走同一条流水线，也能出 BIN+CUE。
+⚠ **v5.2.2 修了一个致命坑**：`zig cc` 不带 `-mcpu` 时默认按**编译机的 CPU**
+出码，之前的包里带着 AVX-512，换到不支持的老 CPU 上，解码器一启动就
+`0xC000001D`，而界面把它报成「解码器拒绝了这份 BIOS」—— 看着像 BIOS 坏了，
+其实是解码器自己跑不起来。现在 `build.py` 固定加 `-mcpu=baseline`，
+门禁也会扫 `vzeroupper` 防止回归（见 README ⚠51）。
+⚠ 但 PSF 绕不过**一份 BIOS**：请准备一份 4MB 的 PS2 BIOS（如 `scph39001.bin`）。
+**指定一次就够**（v5.2.0.5）——程序会把它**复制到 exe 旁边的 `bios/` 目录**，
+以后换版本、源文件被清理、配置丢了都还能自己找到，不用再指定。
+把 exe 拷到别的机器时，**连同 `bios/` 一起拷**即可。
+**本工具不分发 BIOS**，`bios/` 里是你自己机器上那份。
+✅ **`.psf2`（PS2）从 v5.4 起也支持了**（同一个 `psf2wav.exe` 走 psf2fs VFS + IOP，
+48000Hz），共用同一份 BIOS；PS2 的 `.npsf`（Namco，Ace Combat 系）也一并通了。
+详见 README ⚠45。
+
+✅ **`.txtp` 已支持**（PS1 下载包里那种一行索引）：它指向包内 `.xa` / `.DA`，
+解码器是纯 Python 的，不依赖 foobar2000，所以和 SPC / 镜像走同一条流水线，
+也能出 BIN+CUE。格式列显示「PSX 音频」，曲名取 `!tags.m3u`。
+
+✅ **PSF 转 WAV 不再弹黑框**（v5.2-web-game）：`psf2wav.exe` 是控制台程序，
+从窗口程序里起它每首都会闪一次黑框，偶尔还会报 0xc0000142 启动失败
+（同一个根因）。现在改成后台静默运行 + 偶发失败自动重试 3 次。
+详见 README ⚠40。
+
+✅ **转出的 WAV 按游戏名分文件夹**（v5.2-web-game）：以前所有游戏都挤在
+`WAV/` 里、编号从 01 一路连到几百，根本分不清哪个文件是哪款游戏的。
+现在自动建 `WAV/<游戏名>/`，**每个游戏各自从 01 起编号**，清单也各存一份
+（重复下载不会重转）。详见 README ⚠41。
+
+✅ **0 字节的 `.txtp` 也认了**（v5.2-web-txtp）：真实 PS1 包解压出来往往是
+`BGM.XA` 加一堆 **0 字节**的 `BGM.XA#01.txtp` / `#02` … —— 子流号写在**文件名**里，
+文件本身是空的。以前这种整包一首也转不出来，现在直接**把整个文件夹拖进来**就行
+（一个 BIN+CUE 里 23 轨，越界/坏的那条跳过并记日志）。详见 README ⚠37。
+
+✅ **解压也不再弹黑框了**（v5.2-web-play）：上一版只把「解码」那处静默了，
+`tar.exe` 解压、芯片解码起 worker 这两处还在闪。现在三处统一走
+`winspawn.silent_kw()`（`CREATE_NO_WINDOW` + `SW_HIDE` 两道保险）。
+实测对照：不带参数 `peak=1 after=1`（黑框出来了还留着），带参数 `peak=0 after=0`。
+详见 README ⚠42。
+
+✅ **下载页能看到 WAV 转换进度，也能直接试听**（v5.2-web-play）：
+日志框现在每转完一个源就写一行（`🎵 [3/12] FF7/BGM.psf → 12 首 · 5.2 MB`），
+解码中的长曲每 6 秒留一行心跳（限流，不刷屏）；右下角新增「试听」面板，
+列出 WAV 目录里的曲目（新的在前），点一下就能播，带进度条。
+详见 README ⚠43。
+
+✅ **「打开文件夹」不再报「目录不存在」**（v5.2.0.4）：以前它固定去开
+`<保存目录>/WAV`，没勾自动转 WAV / 第一次用时这个目录还没建出来，点了只会弹
+「目录不存在」。现在按三级落点：有 WAV 就开 WAV → 没有就开保存目录 →
+连保存目录都没建就开上一级（并提示一句）。详见 README ⚠44。
+
+✅ **云盘登录已整套移植**（v5.2-web-cloud）：浏览器登录 / 粘贴 Cookie / 扫码 /
+切换账号 / 退出登录 / 「合并·分轨·全传」三选一，**全在 Web 版里**。
+以前点「上传云盘」会提示「请用 tkinter 版登录提取 cookie」，现在不需要了。
+详见 README ⚠34。
+
+✅ **6 套复古配色也搬过来了**（红白机 / NES / Game Boy / PC Engine / Mega Drive /
+超任）：顶栏那颗调色板按钮弹出面板，转换页和下载页都有，选完记在本地。
+详见 README ⚠34。
+
+✅ **平铺的 PS1 包现在整包都能转了**（v5.2.4）：有些 JoshW 包**没有 `.txtp`
+索引**，解压出来就是「一堆 `.XA` + 一个 `.PSF`」（装甲核心就是这样：14 个
+BGM + 1 个 STAFF + 1 个菜单 PSF）。以前**只转得出那个 PSF**，15 个 XA 全丢，
+因为 `.xa` 既不在 libgme 的格式表里、也没被当成音源。现在 `.XA` 和 `.txtp`
+走同一条原生解码路径（纯 Python，不需要 BIOS、不需要 foobar2000），
+加整个文件夹 → **16 个音源 → 16 个 WAV**（实测 62 秒）。
+详见 README ⚠55。
+
+✅ **8 个机种的格式逐个盘完了**（v5.2.7）：`D:\MSU1Downloads\joshw`
+下 8 个机种共 667 个文件（659 首曲目 + 8 个配套采样库），做到 **95 个**：
+
+> ⚠ **下面这一节是 v5.2.7 的历史快照，其中「剩下 572 个做不到」的结论已被
+> v5.3 / v5.4 / v5.5 推翻** —— 那些「内存快照」格式现在全部打通了（见本文上面
+> 「v5.3 ~ v5.5 新增的格式」）。留着这一节只为说明 `.adx`/`.mod`/`.hwas`/`.swav`/`.dvi`
+> 这 95 个是怎么来的。
+
+| 格式 | 机种 | 数量 | 怎么解的 |
+|---|---|---|---|
+| `.adx` | Dreamcast | 7 | 转手 PyAV，一行没写 |
+| `.MOD` | GBA | 10 | **自写 ProTracker 回放器 `mod_audio.py`** |
+| `.hwas` | NDS | 29 | **自写 IMA ADPCM 解码器** |
+| `.swav` | NDS | 4 | 同上（文件级一个 4 字节头） |
+| `.dvi` | Saturn | 45 | 同上（高半字节先 + 4 字节交错） |
+
+后三类是 v5.2.7 新攻下的 **78 个**。**不是「试着解」** —— 拿 vgmstream r2117
+（业界标准实现）当黄金标准，把两边都转成 WAV **逐样本比对**，判据是**最大差必须为 0**：
+78 个全部 100% 一致、最大差 0。纯 Python + numpy 写出来的和 C 实现的位级相同。
+
+剩下 572 个是**真的做不到**，不是参数没调对：其中 494 个是 `.minigsf`/`.miniusf`/
+`.mini2sf`/`.psf2`/`.dsf`，这些文件本身只有 114~489 字节，只是**状态快照**，
+音乐在几 MB 的配套 ROM 里，必须跑对应主机的 CPU + 声音芯片才能出声。
+
+> ⚠ **这句「做不到」是当时的结论，已经被推翻了。** 补上主机核之后（v5.3~v5.5），
+> 这 494 个里能做的全做了。真正的判据不是「要不要模拟」，而是「有没有开源核
+> 能用 zig 编成独立 exe」—— kode54 的 `audacious-xsf` 把 USF/2SF/SSF/DSF/GSF
+> 全部凑齐了。
+
+⚠ 顺带**纠正了上一轮（v5.2.6）的一个错误结论**：当时把 `.hwas`/`.swav`/`.dvi`
+判成「容器解开了、负载编码没破」，故意不接进转换链路。**这个判断是错的** ——
+不是格式特殊，是**自己的三个 bug 叠在一起**：
+
+1. IMA 的步长索引表后半段写成了 `-2,-4,-6,-8`（应为 `2,4,6,8`）—— 半字节的 bit3
+   只是**符号位**，幅度和 0~7 一样。写成负数会让负向半字节的 step 一路收缩到 0，
+   delta 变成 `step>>3 = 0`，输出卡住 → **DC 漂移**（ac1=1.000、频谱质心 4 Hz）
+2. HWAS 用了高半字节先（实际是低半字节先）
+3. SWAV 按「每 36 字节一个帧头」解（实际只有文件开头一个 4 字节头）
+
+教训写在 README ⚠58 里：`ac1 ≈ 1.0` 只能说明「解出来是慢变信号」，**不能**说明
+「编码不是 ADPCM」。**先怀疑自己的实现，再怀疑格式。**
+
+✅ **转不了的时候，现在会说清为什么了**（v5.2.6）：以前下载页只有一句
+「包里没有本工具能直接转换的音源（.minigsf、.m3u）」—— 把扩展名一列了事，
+用户既不知道是自己下错了、还是程序漏了、还是本来就不行。现在按格式给原因：
+
+    48 个转不了：48 个 .minigsf（GBA 内存快照，每首仅 249~268 字节 —— 得跑 GBA 的 CPU 与声音芯片）
+    14 个转不了：14 个 .dsf（Dreamcast 整包 rip，每首约 1.3 MB —— 得跑 ARM7 与 AICA）
+    54 个转不了：54 个 .psf2（PS2 内存快照，得跑 Emotion Engine 与 SPU2）
+
+> ⚠ 上面是 v5.2.6 的**文案样例**，这三种格式现在都能转了。今天实际会说「转不了」
+> 的只剩 **5 种采样库**（`.gsflib`/`.usflib`/`.2sflib`/`.ssflib`/`.dsflib`）
+> 加 **4bit AIFF**（XA-ADPCM，Road Rash 那类）—— 3DO 的 `.aif` 从 v5.6 起也通了。
+
+播放列表 `.m3u` 不算进「转不了」的计数（它本来就不是音频）。**部分能转的包也会
+说一句**（GBA 包是 10 个 `.mod` + 121 个 `.minigsf`，以前那 121 首一声不响地
+消失，看着像程序漏了）。手动「添加文件夹」那条路也改了 —— 以前回「文件夹里
+没有可识别的音源」，现在同样给原因。
+
+✅ **换机依赖审计做完了，找到一个真 bug**（v5.2.5）：之前「换台电脑、下载完
+音源却解压失败」的形态**真的还在** —— 没有 `tar.exe` 的机器上，`.zip` 包会被
+py7zr 判成「不是有效的 7z 文件」。现在补了标准库 `zipfile` 退路，另外
+`tar.exe` 存在但跑挂了也会自动换备用解压器。顺带修了「端口被别的程序占用就
+永久拒绝启动」「`%LOCALAPPDATA%` 不可写时抛异常」「没有 D 盘时下载到
+AppData 里用户找不到」三处。详见 README ⚠57。
+
+✅ **下载页播放栏加了音量调节**（v5.2.4）：试听那一行右侧多了一颗喇叭键
+（点一下静音，再点恢复）+ 一根音量滑块，**在喇叭键上滚轮还能 ±5% 微调**。
+默认 80%（不是浏览器的 100%，免得一上来炸耳朵），值记在本地，下次打开
+沿用。静音时喇叭变琥珀色并划叉。详见 README ⚠56。
+
+✅ **「打开输出目录」按钮就在「输出到」下面**（v5.2.3-web）：路径框下方那颗
+`打开输出目录`，点一下就在资源管理器里打开当前输出目录，**转换前后都能点**
+（以前要等转换出结果、而且按钮藏在顶栏工具栏里）。目录还没生成时不会弹
+英文异常，而是提示「目录不存在：…（还没转换过，或者这个目录已经被移走/改名）」。
+
+## 三个版本怎么选
+
+| | tkinter v4.44 | Qt v5.0-qt | **Web v5.9.10（正式）** |
+|---|---|---|---|
+| 体积 | 65.5 MB | 99.2 MB | **63.8 MB** |
+| 冷启动 | ~2 s | ~9 s | **~2–3 s** |
+| 界面 | 老 | 现代 | **现代（HTML/CSS，可继续改）** |
+| 下载音源 | ✅ | ❌ | **✅（Web 页，33 机种 / 分组可折叠）** |
+| `.txtp` | ✅ | ❌ | **✅（含 0 字节子流式 + 整目录）** |
+| PSF / PSF2 | ✅（要 foobar2000） | ❌ | **✅（原生解码，要一份 BIOS）** |
+| USF/2SF/SSF/DSF/GSF/WSR/SGC | ❌ | ❌ | **✅（自带 6 个模拟器核）** |
+| KSS（MSX / GG / SMS） | ❌ | ❌ | **✅（v5.8 换 libkss，第 7 个核）** |
+| 下载页机种 | — | — | **33 个 / 3 组（v5.9 重构，含 Switch）** |
+| 云盘登录 | ✅ | 只做了粘贴 Cookie | **✅（浏览器 / Cookie / 扫码 + 换号）** |
+| 6 套复古配色 | ✅ | ✅ | **✅（两页都有）** |
+
+启动时间差在哪：Qt 版是 PyInstaller `--onefile`，每次启动都要把 100MB 解包到
+`%TEMP%\_MEIxxxx`；Web 版虽然也是 PyInstaller onefile（63.8MB），但少了整块
+PySide6（656MB），解包量小一半多，所以 2~3 秒就能起。
+
+## 临时文件放哪（v4.44 起）
+
+程序运行时的临时 PCM 落盘默认在 **`D:\MSU1Temp`**，不再往 C 盘 `%TEMP%` 写。
+优先级：环境变量 `MSU1_TEMP` > `D:\MSU1Temp` > 系统 temp（D 盘不可用时自动回落）。
+启动时会自动清掉该目录下 24 小时前的旧残留，被强杀留下的也会回收。
+
+## 想继续开发
+
+1. 装 **系统 Python 3.14**（`C:\Python314\python.exe`）。
+   ⚠ 不要用托管的 3.13 —— 那个没编 tkinter，GUI 和打包都用不了。
+2. `pip install pyinstaller numpy miniaudio cffi soundfile py7zr pycryptodome av segno pillow`
+   ⚠ 后四个不是可选项，缺一个就打不对（产物会掉到 15.6MB）。
+   只在要重编解码器时才额外装 `ziglang`。
+3. Qt 版额外要装 **PySide6**（`pip install PySide6`，约 656MB）。
+4. 打包：
+   - tkinter 版：`python -m PyInstaller MSU1Converter.spec --noconfirm`
+   - Qt 版：`python -m PyInstaller MSU1Converter-qt.spec --noconfirm`
+   - **Web 版：`python build_web_pyi.py`**（PyInstaller = **正式线**，约 63.8MB）
+     ⚠ 不是 `build_web.py` —— 那个是 Nuitka 线，部分 CPU 上会 `0xC000001D`，
+       只作对照用（见 README ⚠50）
+     ⚠ **打完必须手动复制到 `dist/`**（脚本只写到 `build/MSU1Converter-web-pyi/`）：
+       `cp build/MSU1Converter-web-pyi/MSU1Converter-web.exe dist/`
+       忘了这一步，`dist/` 里就一直是上一版 —— v5.5 的 WSR 差点因此没发出去
+   ⚠ 打包前先关掉正在运行的 exe，否则删不掉旧产物会直接中断。
+5. 自检：
+   - tkinter 版七项全 PASS：`dist\MSU1Converter.exe --selftest / --cloud-selftest /
+     --cdp-selftest / --merge-selftest / --cd-selftest / --psf-selftest / --txtp-selftest`
+   - Qt 版：`dist\MSU1Converter-qt.exe --qt-selftest`（日志在 exe 旁边 `qt_selftest.log`）
+   - **Web 版：`python vendor/test_web_ui.py`（源码 790+ 项，`--fast` 762 项 → 762 通过 / 0 失败）
+     和 `python vendor/check_web_exe.py`（打好的 exe，165 项，只碰包）
+     另有 `python vendor/_probe_fmt_dirs.py`（WAV/FLAC 目录分离，真转两轮，29 项）
+     `python vendor/_probe_flac.py`（FLAC 真写盘 + 真解码，29 项）
+     和 `python vendor/_probe_viz_fix.py`（真起 Edge + 真播放，量 canvas 渲染尺寸，16 项）**
+     ⚠ 本机一次跑全量会在 `t_bios_bundle` 附近被删除护栏掐断（每轮 50 次配额），
+       改用 `python vendor/_gate_split.py --all` 分四段跑，合计口径相同
+     ⚠ `check_web_exe.py` 会自动按 `build_*-pyi` → `build/MSU1Converter-web` →
+       `dist/` 的顺序找 exe，也可以 `--exe <路径>` 指定
+   - **Web 版真 exe 端到端（可选，约 2 分钟）：`python vendor/_e2e_mod_exe.py`**
+     启 exe → 加一首 GBA 的 `.MOD` → 转换 → 验 WAV 格式与时长
+   - **真 exe 验「转不了」的文案（可选，约 10 秒）：`python vendor/_e2e_skip_reason_exe.py`**
+     Contra 4（纯 `.mini2sf`）→ 0 个音源 + 具体原因；007（`.hwas`/`.swav`）→ 33 个音源；
+     GBA → 仍 10 个音源
+     ⚠ exe 端口是固定的 47913（兼作单实例锁），脚本里别随便挑端口
+   - **真 exe 实转 `.hwas`/`.swav`/`.dvi`（可选，约 8 秒）：`python vendor/_e2e_stream_exe.py`**
+     三种格式各转一首 → 验输出规格（2ch/44100/16bit）、时长（±2%）、
+     **不是 DC**（相邻样本平均差 ≥ 50、过零率 ≥ 0.2%）—— 旧 bug 的症状正是
+     整段几乎不变的低频隆隆声，这一项专门防它回归
+   - **和 vgmstream 逐样本比对（可选，约 4 分半，要自己下 vgmstream）：**
+     `python vendor/_check_vgm_ref.py --vgmstream D:/MSU1Temp/vgm/vgmstream-cli.exe
+     --root D:/MSU1Downloads/joshw` —— 78 个 `.hwas`/`.swav`/`.dvi` 各转两遍，
+     判据是「采样率相同 + 帧数相同 + **逐样本最大差为 0**」
+     ⚠ PSF 的「真解一首」两项要你自己给素材，否则是 `[--]` 跳过（跳过不算通过）：
+     `set MSU1_PSF_SAMPLE=D:\samples\foo.psf` + 本机得有 BIOS
+   - Web 版联网端到端（可选，手动跑）：`python vendor/e2e_dl.py`
+     —— 真下一个包 → 解压 → 转 WAV，专门抓「下载成功但没产出」
+   - **新机种能不能真扫出条目（v5.9，约 2.5 分钟）：
+     `python vendor/_e2e_v59_platforms.py`** —— 起成品 exe，对 Game Gear /
+     Master System / Switch / 街机 VGM / QSound 各发一次 load，报条目数。
+     机种表是静态的，`path` 拼错时界面上一切正常，只有这一步能发现
+6. Web 版开发期看界面：`python -m web_ui.shot --interact -o D:\MSU1Temp\a.png`
+   下载页：`python -m web_ui.shot --page download --interact -o D:\MSU1Temp\b.png`
+   （起真后端 + Edge `--app` + CDP 截图，没有控制台也能看到页面报错）
+
+⚠ **v5.9.6 起，本机跑门禁必须先重定向临时根**，否则「批量删除护栏」会在跑到一半
+时把进程直接掐掉（没有汇总行、没有 traceback、`exit=1`）：
+
+```bat
+set MSU1_TEMP=C://Users//<你>//AppData//Local//Temp//msu1gate
+```
+
+代价是有 2 条断言会红（`[3j] 副本落在 bios/ 里`、`[3e] 默认下载目录不在 AppData 里`），
+它们断的本来就是「默认临时根」下的行为 —— 用 `python vendor/_probe_v596_env.py`
+在默认环境下复验，**8 / 0 全过**。详见 README ⚠71 最后一节。
+
+**详细交接文档见根目录 `README-换机继续开发.md`**，里面有全部踩坑结论（⚠ 编号章节
+1~72）和门禁清单，务必先看它再动代码。
+
+## 这个包里有什么
+- `msu1-to-cd/`   全部源码 + index 内置索引 + vendor 门禁脚本 + 图标资源
+- `msu1-to-cd/web_ui/`  **Web 版界面**
+  - 主界面：`index.html` / `app.css` / `app.js`
+  - **下载页：`download.html` / `download.css` / `download.js`**
+  - 后端：`server.py`（REST + 状态机）/ **`dl_api.py`（下载页状态机，约 1500 行）**
+  - 外壳与工具：`native_dialog.py` / `shell.py` / `shot.py`
+- `msu1-to-cd/vendor/_txtp_fixture.py`  合成 PS1 `.txtp` 包（两套门禁共用的样本）
+- `msu1-to-cd/vendor/e2e_dl.py`  下载页联网端到端（真下载→解压→转 WAV）
+- `msu1-to-cd/vendor/_probe_new_platforms.py`  **v5.9 新机种探测**（6 个新机种各抓
+  一次根页面，报「几个 .7z / 几个子目录」）—— `PLATFORMS` 是静态表，`path` 拼错时
+  界面照样列机种、`platforms == 33` 照样成立，只有真抓才 404
+- `msu1-to-cd/vendor/_e2e_v59_platforms.py`    **成品 exe 真扫新机种**（约 2.5 分钟）
+- `msu1-to-cd/vendor/_e2e_virt_rows.py`       **v5.9.1 列表显示验证**（真起 Edge、真滚、真读 DOM；
+  守「假高度 = 条数 × 27 / 滚到底 = 最后一条 / DOM 节点数不随条数增长 / 表头不错位」13 项）
+- `msu1-to-cd/vendor/_e2e_wav_clear.py`       **v5.9.2 清空试听列表验证**（真起 Edge、真点按钮；
+  守「点完列表真的空了 / 空态文案对 / 按钮不挤爆标题栏 / **WAV 文件一个都没删**」13 项）
+- `msu1-to-cd/vendor/_e2e_row_actions.py`    **v5.9.4 行内按钮验证**（不依赖浏览器，纯后端 53 项：
+  守「包删了只剩解压目录也能转 / 包在没解压会先解压 / 没源可转不会卡在『进行中』/
+  清空后能手动加回试听且重开程序还在 / 上传云盘递归扫得到并按游戏过滤 /
+  清空试听不影响上传清单」；会**真解码** 2 次，约 10 秒）
+- `msu1-to-cd/vendor/_shot_v594.py`           **v5.9.4 拍交付图**（起服务 + Edge，拍
+  「行内按钮」和「上传选游戏」两张；⚠ 两个坑写在 README ⚠69 第六节：
+  对话框必须先把入场动画按最终态钉死再拍，否则 CDP 截到的是 opacity 起始帧；
+  列表必须先在**服务端** `dl.load(key)`，否则拍出来是「在左侧选择一个机种」）
+- `msu1-to-cd/vendor/_shot_v595.py`           **v5.9.5 拍交付图**（起服务 + Edge，真开始转换再取消，
+  拍「解码阶段 13%」和「写盘阶段 58%」两张，证明进度真的在动；⚠ 日志面板直接改
+  `#logPanel`.hidden，别去点 `#progStrip`——它的 onclick 是属性、且只在自身 hidden 时才需要点）
+- `msu1-to-cd/vendor/_shot_v596.py`           **v5.9.6 拍交付图**（起服务 + Edge，真转一个
+  MSX 小包 → 真播第一首 → 拍「主界面 / 频谱特写 / 空态 / 可关闭」四张 →
+  再把 2 个 WAV 复制进 WAV 根目录 → 切到 `download.html` 真播一首 → 拍
+  「下载页-频谱在动 / 特写 / 空态」三张，共 **7 张**；⚠ 四个坑写在
+  README ⚠71 末尾：端口 9417；必须挑 ≤20 首的小包（33 首那类会在临时根留 67 个文件，
+  清理时撞上删除护栏、进程被掐，`state` 永远停在 running）；`Runtime.evaluate` 必须带
+  `userGesture: true`，否则 Chrome 把 `audio.play()` 和 AudioContext 一起挂起，
+  拍出来频谱永远是平的；下载页那 3 张需要磁盘上真有 WAV，脚本只删自己复制的那两个文件
+  + 尝试 `rmdir`，**绝不 rmtree** —— 目录可能本来是用户的游戏目录）
+- `msu1-to-cd/vendor/_probe_v596_env.py`      **v5.9.6 环境复验**（默认临时根下单独跑
+  `[3j] 副本落在 bios/ 里` 和 `[3e] 默认下载目录不在 AppData 里` 两条 → 8 / 0；
+  用来证明门禁里那 2 条红是 `MSU1_TEMP` 重定向造成的，不是回归）
+- `msu1-to-cd/vendor/_probe_flac.py`          **v5.9.7 FLAC 专项验证**（29 项，真写盘 + 真解码）：
+  无损判据（FLAC 解回 == 原始 PCM 逐样本）、帧数/规格、体积比、
+  `wav_scan_numbering` 认 `.flac`（第二批从 03 起、不覆盖第一批）、
+  `ConvertWorker` 在 FLAC 下强制关 merge、`_estimate_bytes` 折算、
+  `convert(fmt=)` 透传、空 PCM 失败不留残留）
+- `msu1-to-cd/vendor/_shot_flac.py`           **v5.9.7 拍交付图**（起服务 + Edge，**真点** FLAC 卡片
+  验互斥 → 拍主界面两张 → 切到下载页 → **真勾** FLAC 验互斥 + merge 禁用 → 拍两张，
+  共 4 张；⚠ 三个坑：端口 9418；每次用新 `--user-data-dir`（复用旧 profile 时
+  Edge 会话恢复会把窗口带到上次的页面）；**下载页不能用 `$`** —— 主界面的 `$` 是
+  `app.js` 顶层的、CDP 能访问，而 `download.js` 里那个在 IIFE 内部，用了会
+  `ReferenceError` 且后续断言**静默失败**，下载页一律用 `document.getElementById`）
+- `msu1-to-cd/vendor/_probe_viz_fix.py`       **v5.9.8 频谱面板修复验证**（16 项，真起 Edge + 真播放）：
+  断言的**不是**「元素存在」而是**渲染尺寸**——canvas CSS 尺寸 ≈ 容器内容盒、
+  像素尺寸有上限（< 2000）、面板宽度 ≤ 侧栏宽度、整页无横向滚动条、
+  播放中尺寸依然稳定、两帧指纹不同、主界面未受影响、两页 `__errs` 为空。
+  ⚠ 三个坑：端口 9420；用 `MSU1_DL_PREFS` 把 prefs 重定向到 `%TEMP%`（不碰用户
+  `dl_prefs.json`）；素材只复制 2 个 WAV 进临时 dest，收尾只 `os.remove` 自己那几个
+  （不批量删目录，开发机有删除护栏）
+- `msu1-to-cd/vendor/_diag_viz.py`            **v5.9.8 排查用**（只读不写）：起服务 + Edge，
+  读 DOM 存在性 / 计算样式 / 几何 rect / `window.__dlViz` 探针 / `window.__errs` /
+  **遍历祖先链看谁把它藏了**。这次就是靠它一眼看到 `canvas.rect = 32545×16358`。
+  端口 9419
+- `msu1-to-cd/vendor/_probe_fmt_dirs.py`     **v5.9.9 目录分离验证**（29 项，纯后端，不依赖浏览器）：
+  真转 10 首 WAV → 再转 10 首 FLAC → 验「两目录各 10 个产物 / WAV 没被覆盖 /
+  状态列 = 🎵 已转 WAV+FLAC / 同格式重转仍跳过 / `wav_list` 同时列两种 /
+  `wav_games` 合成一条 FLAC+WAV / `wav_path` 两种都取得到且挡越界」
+- `msu1-to-cd/vendor/_shot_v599.py`           **v5.9.9 拍交付图 + 真点按钮**（起服务 + Edge）：
+  真点「转 WAV」→ 真点「转 FLAC」→ 拍 3 张（工具条两颗按钮 / 转 WAV 日志 / 转 FLAC 日志），
+  并核对两个目录的产物数、状态列文案、`window.__errs`
+  ⚠ 四个坑：端口 9421；下载页行选择器是 `#dlRows .dl-row`（不是主界面的
+  `#trackBody .tr`）、状态列是 `.c-state`（不是 `.st`）；**行内没有复选框**，
+  选择状态就是行上的 `.on` 类（点整行 toggle）；状态列要**轮询等收敛** ——
+  `_finish()` 是先写日志后扫盘，一看到「转 FLAC 完成」就读状态列会读到上一轮快照
+- `msu1-to-cd/vendor/_gate_split.py`          **v5.9.9 分段跑门禁**（A / B / B2 / C 各起新进程）：
+  开发机删除护栏每轮只给 50 次配额，门禁一次跑全量必然在 `t_bios_bundle` 被掐。
+  `--part a|b|b2|c` 单段跑，`--all` 依次跑并汇总
+  （**v5.9.10 实测 793 = 113 + 321 + 19 + 340**，b 组加了 `t_qsf`）
+- `msu1-to-cd/vendor/_probe_qsf.py`          **v5.9.10 QSF 格式门禁**（22 项，四段）：
+  ① 纯 Python 解 PSF 容器（不依赖 exe）② 逐块拆 qsflib（Z80/SMP/KEY）
+  ③ 逐首比补丁字节（45 首 = 45 个曲号，全部打在 `0x21`）
+  ④ 用 qsf2wav.exe 真解全部 45 首。**退出码 0 = 全绿**
+  ⚠ 不能 `glob`：目录名带 `[Rockman 2 - …]`，方括号会被当成字符集
+  ⚠ CRC 算在 **zlib 压缩体**上，不是解压后（按解压后校验会一直不匹配）
+- `msu1-to-cd/vendor/_qsf_e2e.py`            **v5.9.10 主流水线端到端**（`ConvertJob` 真转 2 首，
+  验 WAV 产物大小 / 时长 / 分类 = QSF）
+- `msu1-to-cd/vendor/_qsf_worker.py`         **v5.9.10 下载页路径验证**（`policy_for` = qsf →
+  `ConvertWorker._convert_emu(qsf_native, "QSF")` → 2ch/44100）
+- `msu1-to-cd/vendor/_qsf_exe_e2e.py`        **v5.9.10 打包态端到端**（15 项）：起打包好的 exe，
+  验 diag 里 `qsf2wav.exe` 的路径**含 `_MEI`**（= 真的是从 onefile 解包目录找到的，
+  不是源码树），再真转一首验 45 秒 / 7,938,044 字节 / 2ch/44100
+  ⚠ 这个脚本守的是**只有 exe 才会犯**的错：`qsf2wav.exe` 靠 `EXTRA_EXE` 才带出去
+- `msu1-to-cd/vendor/_e2e_disk_state.py`     **v5.9.3 状态列验证**（不依赖浏览器，纯后端 37 项：
+  守「重启后状态列一条不差 / 保存目录填成根·站·机种·自定义四种全对 /
+  换盘符能找回同一条相对路径 / 4000 行快照 < 40ms / 目录被删不抛异常」）
+- `msu1-to-cd/vendor/_shot_state.py`          **给截图造样本**（按真实条目名造
+  「包在 / 已解压 / 已转 WAV / 没下过」四种落盘形态；⚠ 它会把保存目录拽回
+  `D://MSU1Temp//演示样例//` 并断言不许跑出临时目录 —— 第一版没这道断言，
+  往用户真实下载目录 `D://MSU1Downloads` 里写了 16 个假文件）
+- `msu1-to-cd/vendor/_check_vgm_ref.py`  **和 vgmstream 逐样本比对**（黄金标准，v5.2.7）
+- `msu1-to-cd/vendor/_check_{usf,2sf,ssf,gsf,psf2}_ref.py`  **五种快照格式的逐样本比对**
+  （v5.3/v5.4，参照实现是 `audacious-xsf/plugin.cc` 的逐行移植）
+- `msu1-to-cd/psx_txtp.py`     `.txtp` → PCM 解码（纯 Python，Web 版也用它）
+- `msu1-to-cd/stream_audio.py` **流式音频解码**（`.adx` / `.mod` / `.hwas` / `.swav` /
+  `.dvi` / `.strm` / `.npsf`，纯 Python + numpy；IMA ADPCM 内核三种格式共用，见 README ⚠58）
+- `msu1-to-cd/mod_audio.py`    ProTracker `.MOD` 回放器（GBA 那 10 个）
+- `msu1-to-cd/psf_native.py`   **PSF 系原生解码封装**（找解码器 / 找 BIOS / 读回 WAV）
+- `msu1-to-cd/psf2wav.exe`     **PSF / PSF2 解码器**（456 KB，psflib + Highly Experimental）
+- `msu1-to-cd/tools/psf2wav/`  解码器源码 + `build.py`（用 zig 编，见 README ⚠33）
+- `msu1-to-cd/{usf2wav,vio2wav,ssf2wav,gsf2wav,wsr2wav,kss2wav}.exe`  **另外六个模拟器核**
+  （N64 / NDS / Saturn+DC / GBA / WonderSwan / MSX+GG+SMS），源码在 `tools/<同名>/src/`，
+  各自 `build.py` 用 zig 编，`--ref` 会额外编一个 `refdump.exe` 做逐样本比对
+- `msu1-to-cd/kss_native.py`   **KSS 外挂解码封装**（v5.8：曲目表 / `GAIN=4.0` / 分流）
+- `msu1-to-cd/tools/kss2wav/`  `kss2wav.c` + `build.py` + **整棵 libkss 源码**
+  （`src/libkss/` 里 6 个 submodule `emu2149` `emu2212` `emu2413` `emu76489`
+  `emu8950` `kmz80` **已展开**，换机不用再 `git submodule update`，见 README ⚠64）
+- `msu1-to-cd/convert_job.py`  框架无关的转换流程（Qt 与 Web 共用同一份）
+- `msu1-to-cd/msu1_web.py`     Web 版入口（也是 Nuitka 编译入口）
+- `msu1-to-cd/build_web_pyi.py` **Web 版打包脚本（PyInstaller 线 = 正式线）**
+- `msu1-to-cd/build_web.py`    Web 版打包脚本（Nuitka 线，留档用）
+
+**`msu1-to-cd/dist/` 现在只剩 6 项**（2026-10-25 实测，共 135 MB）：
+
+```
+MSU1Converter-web.exe          63.8 MB  v5.9.10 正式版（PyInstaller，含 WSR / KSS / 3DO / QSound / 33 机种 / 双格式分离）
+MSU1Converter-v4.44.exe        65.5 MB  旧界面唯一留档
+bios/scph39001.bin              4.0 MB  PSF / PSF2 用的 BIOS 副本
+zh_titles_user.json             1.5 MB  中文曲名对照表
+psf_bios.txt                     94 B   BIOS 路径记录（一行）
+logs/                                   启动日志 startup.log
+```
+
+⚠ 早先的 `MSU1Converter.exe`（tkinter 主程序）、`MSU1Converter-qt.exe`、
+`MSU1Converter-web-Nuitka.exe`、`MSU1Converter-web-v5.1-psf.exe`、`v4.14~v4.43`
+那一串历史 exe、以及 `MSU1Converter-web-standalone/` 目录版 **都已删除**，别去找。
+要回滚就看 `README-换机继续开发.md` 里的 ⚠ 编号章节，按结论重打一遍即可。
+
+## v5.3 ~ v5.9 新增的格式（这七版没改界面，全是解码 / 换解码器 / 机种表）
+
+| 版本 | 打通了什么 | 数量 |
+|---|---|---|
+| v5.3 | `.miniusf`(N64) / `.mini2sf`(NDS) / `.ssf`(Saturn) / `.dsf`(Dreamcast) / `.minigsf`(GBA) | 540 个 |
+| v5.4 | `.psf2` / `.minipsf2`（PS2）、`.npsf`（Namco PS2）、`.sgc`（GG/SMS） | 60 个 |
+| v5.5 | `.wsr`（WonderSwan，曲号在 AX 寄存器里，靠 `v30mz_set_reg` 注入） | 全量 |
+| v5.6 | `.aif` / `.aiff` / `.aifc`（**3DO**，AIFF/AIFC 容器，SDX2 + 8/16bit PCM） | 全量 |
+| v5.7 | **没加格式**，加的是音源站：下载页接 `zophar.net`，补 GG / SMS 原声 | +2 机种 |
+| v5.8 | `.kss` **换解码器**：libgme → libkss（原来 3/12 的 GG 包精确静音） | 修 bug，无新格式 |
+| v5.9 | **没加格式**，改机种表：删 PS5、加 Switch、kss 拆 3 条、hoot 拆 2 条、撤 Zophar 组 | 30 → 33 机种 |
+| v5.9.1 | **没加格式**，改下载页列表：800 行渲染上限换成虚拟滚动，后端安全阀 4000 → 12000 | 界面，无新格式 |
+| v5.9.2 | **没加格式**，试听面板加「清空列表」（只隐藏不删文件，按 WAV 目录记时刻） | 界面，无新格式 |
+| v5.9.3 | **没加格式**，下载页「状态」列改成按磁盘事实算 + 保存目录可自定义任意路径且能跨机找回 | 界面，无新格式 |
+| v5.9.4 | **没加格式**，每行加「转 WAV / ＋试听」按钮 + 上传云盘能挑游戏 + 修「这个目录里没有 WAV」 | 界面，无新格式 |
+| v5.9.5 | **没加格式**，修 SPC 包转换「0% 卡住」：进度没接 + 白解 4 倍时长（92 首 17 分钟 → 4.6 分钟，成品逐字节不变） | 修 bug，无新格式 |
+
+> ⚠ v5.6 顺带推翻了一条**写在注释里的错判**：`.aif` 一直挂着「3DO 需要
+> ARM60 + DSP + CEL 整机模拟」。实际上 3DO 的 BGM 是游戏自己存好的**预录
+> 流式音频**，容器就是苹果 AIFF/AIFC —— 和 `.adx`/`.hwas`/`.npsf` 同类，
+> 纯解码，不需要模拟任何 CPU。那句「需要整机模拟」是猜的，猜错了，
+> 让一个本来就能做的格式躺了好几个版本。详见 README ⚠62。
+>
+> 仍未支持：4bit AIFF（XA-ADPCM，Road Rash 那类）—— 明确报错，绝不产出静音 WAV。
+
+判据统一是「和上游参照实现**逐样本最大差 == 0**」，不是「能出声就算过」。
+七个独立解码器都在 `msu1-to-cd/*.exe`，源码在 `msu1-to-cd/tools/*/src/`，
+用 `python tools/<名字>/build.py` 重编（要 `pip install ziglang`）。
+
+> ⚠ v5.8 的 `kss2wav.exe` 是**例外**：libkss 就是 KSS 的参考实现（`kssplay`
+> 的核心库），没有「更上游」可比，所以判据改成「同一批包换解码器前后都不静音 +
+> 两条回归（16 KB KSS 11 首 / `.sgc` 10 首不变）」。别拿这条去质疑别的格式的判据。
+
+**真实目录实测（2026-10-25，`vendor/_report_8machines.py`）**：
+8 个机种 947 个音频文件，**928 个能转（98.0%）**，剩下 19 个全是采样库
+（`.gsflib`/`.usflib`/`.2sflib`）和 `.json` 元数据，没有一个是音乐。
+
+- `.workbuddy-ai/memory/`    历次改动记录与长期结论
+- `docs/` `deliverables/`  设计与需求文档、WSC 烧录器、项目状态回顾
+  （Web 版实拍截图在 `deliverables/v5.9.10-web/`，历史各版在 `v5.1-web/` ~ `v5.9.9-web/`）
+- `design-system/`         设计规范（令牌单一事实源 + 21 项门禁 + 规范页）
+- `README-换机继续开发.md` 交接主文档
+
+## 没带什么（都可以重新生成）
+- `msu1-to-cd/build/`        打包中间产物（PyInstaller 的 build/ 与 Nuitka 的 build/MSU1Converter-web/）
+- `dist/` 里的历史 exe       v4.14~v4.26，原开发机的 `dist/` 还在
+- `dist/dist.zip`            旧的整包压缩
+- `__pycache__/`             字节码缓存
+- `vendor/samples/hes/*.ape` 19 个 145MB 大音频（与本项目无关）
+
+## 首次运行注意
+云盘登录态存于 `%LOCALAPPDATA%\MSU1Converter\`（`netease.json` + `browser/`），
+**不在这个包里**，换机后需要重新登录一次 —— **Web 版自己就能登**（v5.2）：
+
+点「上传云盘」→ 没登录会直接弹出登录窗，三页任选：
+- **浏览器登录**（推荐）：开一个独立浏览器窗口，在里面正常登录一次即可。
+  走的是网易云官方网页流程，不触发 8821 风控；登录一次长期复用。
+- **粘贴 Cookie**：浏览器登录不可用时的兜底。
+- **扫码**：可能被 8821 风控拦，撞上了会自动切到「粘贴 Cookie」页。
+
+账号管理（切换账号 / 退出登录）在**上传对话框顶部那一行**，不用再开旧版。
+详见 README ⚠34。
+
+Web 版还会在 `%LOCALAPPDATA%\MSU1Converter\edge_profile\` 放一份独立的 Edge
+配置目录（约 30MB，保证不复用你已开的 Edge 窗口）。删掉无副作用，下次自动重建。
+
+**PSF 的 BIOS 路径**记在程序目录的 `psf_bios.txt`（一行，写完整路径）；
+程序目录不可写时退到 `%APPDATA%\RetroMusic Lab\psf_bios.txt`。
+也可以在启动前设环境变量 `MSU1_PSF_BIOS` 覆盖它。
+**这个文件不进包** —— 换机后要重新指一次（或用自动发现：RetroArch / PCSX2 / ePSXe
+的 bios 目录会被扫一层）。

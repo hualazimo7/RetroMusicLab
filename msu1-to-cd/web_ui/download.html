@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>音源下载 · RetroMusic Lab</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%238B5CF6'/%3E%3Cpath d='M11 22V10l10 6-10 6z' fill='%23fff'/%3E%3C/svg%3E">
+<!-- 错误探针：与 index.html 同款。
+     打包后没有控制台，JS 一炸就是白屏 —— 有了这个，shot.py / 门禁
+     能读到 window.__errs，窗口标题也会变成 "JSERR ..."，
+     不至于对着空白页瞎猜。**两个页面必须都装**。 -->
+<script>
+window.__errs = [];
+window.addEventListener("error", function (e) {
+  var msg = (e.message || "unknown") + " @ " + (e.filename || "?").split("/").pop() + ":" + e.lineno;
+  window.__errs.push(msg);
+  if (!/JSERR/.test(document.title)) document.title = "JSERR " + msg;
+});
+window.addEventListener("unhandledrejection", function (e) {
+  var msg = "promise: " + (e.reason && e.reason.message ? e.reason.message : e.reason);
+  window.__errs.push(msg);
+  if (!/JSERR/.test(document.title)) document.title = "JSERR " + msg;
+});
+</script>
+<script>
+/* 主题预置（与 index.html 同一份，理由见那里） */
+(function () {
+  var t = "";
+  try { t = localStorage.getItem("rml-theme") || ""; } catch (e) { }
+  if (!t) {
+    try { t = new URLSearchParams(location.search).get("theme") || ""; } catch (e) { }
+  }
+  document.documentElement.dataset.theme = (t === "light") ? "light" : "dark";
+})();
+</script>
+<link rel="stylesheet" href="/app.css">
+<link rel="stylesheet" href="/download.css">
+<link rel="stylesheet" href="/cloud.css">
+</head>
+<body class="dl-body">
+
+<!-- ═══ 顶栏 ═══ -->
+<header class="dl-top">
+  <a class="dl-back" href="/" title="返回转换页">←</a>
+  <div class="dl-title">
+    <span class="dl-title-main">音源下载</span>
+    <span class="dl-title-sub">joshw.info 全机种镜像 · 33 个机种</span>
+  </div>
+  <div class="dl-top-right">
+    <span id="dlConn" class="conn">连接中…</span>
+    <!-- 主题：◐ 只在深/浅之间切，调色板那颗弹 6 套复古配色。
+         这里**不加** tb-btn —— `.seg button` 已经把尺寸/圆角定死了，
+         两个类一起挂会带上 tb-btn 的 0 10px 内边距，28px 宽塞不下。 -->
+    <div class="seg" id="dlThemeSeg">
+      <button id="dlTheme" data-theme-btn="toggle"
+              title="切换深浅色">◐</button>
+      <button data-theme-btn="retro" title="复古配色（6 套）">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="8.2" stroke="currentColor" stroke-width="1.6"/>
+          <circle cx="9.2" cy="9.4" r="1.3" fill="currentColor"/>
+          <circle cx="14.6" cy="9.8" r="1.3" fill="currentColor"/>
+          <circle cx="9.6" cy="14.6" r="1.3" fill="currentColor"/>
+          <circle cx="14.2" cy="14.4" r="1.3" fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ 三列 ═══ -->
+<main class="dl-main">
+
+  <!-- 左：机种 -->
+  <aside class="dl-left">
+    <div class="dl-col-head">
+      机种
+      <button id="dlGrpAll" class="tb-btn dl-grp-all" title="全部展开 / 全部收起">全部</button>
+    </div>
+    <div id="dlPlat" class="dl-plat"></div>
+    <p class="dl-hint">点分组名可展开 / 收起；选中机种即可看到列表（自带内置索引）；缺新条目时点「更新全部列表」一次性重扫全部机种。</p>
+  </aside>
+
+  <!-- 中：列表 + 操作 -->
+  <section class="dl-mid">
+    <div class="dl-search">
+      <span class="dl-search-ico">⌕</span>
+      <input id="dlSearch" type="text" placeholder="搜索游戏名（支持中文名）" autocomplete="off">
+      <button id="dlSearchClear" class="tb-btn" title="清空">✕</button>
+      <span id="dlCount" class="dl-count">共 0 条，已选 0 条</span>
+    </div>
+
+    <div class="dl-table-wrap">
+      <div class="dl-thead">
+        <span class="c-sel"></span>
+        <span class="c-name">名称</span>
+        <span class="c-zh">中文名</span>
+        <span class="c-date">日期</span>
+        <span class="c-size">大小</span>
+        <span class="c-state">状态</span>
+        <span class="c-act"></span>
+      </div>
+      <div id="dlRows" class="dl-rows">
+        <div class="dl-empty">在左侧选择一个机种</div>
+      </div>
+    </div>
+
+    <div class="dl-tools">
+      <div class="dl-tool-row">
+        <button id="dlAll" class="tb-btn">全选</button>
+        <button id="dlInvert" class="tb-btn">反选</button>
+        <button id="dlNone" class="tb-btn">清空选择</button>
+        <button id="dlZh" class="tb-btn">翻译未收录</button>
+        <!-- v6.0.8：用户报「列表更新需要到每个机种下面去点击」。
+             原来只能：选中机种 → 点「清除缓存」→ 重扫，33 个机种点 33 遍。
+             现在一颗按钮把所有机种的列表都重扫一遍（后台跑，不挡操作）。
+             跑的时候这颗键变成「停止更新 12/33」，点一下就停。 -->
+        <button id="dlRefreshAll" class="tb-btn dl-refresh-all"
+                title="把所有机种的列表重新扫一遍（不用逐个机种点「清除缓存」）">更新全部列表</button>
+        <button id="dlClearCache" class="tb-btn" title="删掉本机种的索引缓存并重新联网扫描">清除缓存</button>
+      </div>
+
+      <div class="dl-tool-row">
+        <label class="dl-lab">保存目录</label>
+        <input id="dlDest" type="text" class="dl-dest" placeholder="选择保存位置">
+        <button id="dlPickDest" class="tb-btn">浏览…</button>
+        <button id="dlOpenDir" class="tb-btn" title="打开当前机种的文件夹（保存目录，下载的包和转好的音频都在它下面）">打开文件夹</button>
+      </div>
+
+      <div class="dl-tool-row dl-wrap">
+        <label class="dl-lab">并发</label>
+        <select id="dlWorkers" class="dl-sel">
+          <option value="1">1</option>
+          <option value="2" selected>2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+        <label class="dl-chk"><input id="dlAutoExtract" type="checkbox" checked> 下载后自动解压</label>
+        <label class="dl-chk"><input id="dlDelArchive" type="checkbox"> 解压后删除原 .7z</label>
+        <!-- v6.0.4：原来是「顺带下载封面」复选框（默认开，下载时自动抓）。
+             用户要求改成**按钮**：「可主动选择什么时候下载封面」。
+             复选框只有「下载时抓 / 不抓」两种状态，抓不了「已经下完的补抓」，
+             而且默认开意味着每下载一个机种都会悄悄联网 —— 改成手动触发。 -->
+        <!-- v5.9.9：原来这里是「下载后自动转 WAV / FLAC」两个互斥复选框。
+             用户要求改成**两颗独立按钮**（在下面「上传云盘」旁边）——
+             复选框只能表达「下载时顺手转一种」，而「已经下完的补转」
+             和「两种格式都要」它都表达不了。 -->
+        <label class="dl-chk"><input id="dlMerge" type="checkbox"> 多轨合并成单文件</label>
+      </div>
+
+      <!-- v6.0.4：这一排现在是 8 颗键（开始/停止/上传云盘 + 4 颗转换 + 下载封面），
+           1280 宽刚好排得下。加 dl-wrap 是为了窗口窄一点时**换行**而不是
+           溢出被裁掉 —— 裁掉的那颗是「下载封面」，正好在最右边。 -->
+      <div class="dl-tool-row dl-wrap">
+        <button id="dlStart" class="btn btn-primary dl-start">开始下载</button>
+        <button id="dlStop" class="tb-btn" disabled>停止</button>
+        <button id="dlCloud" class="tb-btn">上传云盘</button>
+        <!-- 转换按钮：对**勾选的条目**做转换，不重新下载。
+             三种格式各自独立 —— 先点 WAV 再点 FLAC 就是「两种都要」，
+             产物分别落在 <保存目录>/WAV、/FLAC、/MP3（v5.9.15 加 MP3）。
+             ⚠ 别改成「格式下拉 + 一颗按钮」：用户明确要的就是
+                「两种格式都要」这种一眼看得见的并列入口。 -->
+        <button id="dlConvWav" class="tb-btn dl-conv" disabled
+                title="把勾选的游戏转成 WAV（输出到 WAV 文件夹，不重新下载）">转 WAV</button>
+        <button id="dlConvFlac" class="tb-btn dl-conv" disabled
+                title="把勾选的游戏转成 FLAC（输出到 FLAC 文件夹，不重新下载）">转 FLAC</button>
+        <button id="dlConvMp3" class="tb-btn dl-conv" disabled
+                title="把勾选的游戏转成 MP3（有损 320 kbps，体积约 WAV 的 23%，输出到 MP3 文件夹）">转 MP3</button>
+        <!-- v6.0.0：第四种。q10 约 395 kbps VBR，体积约 27%，
+             复杂素材上比 MP3 更干净（Vorbis 高频保留更好）。 -->
+        <button id="dlConvOgg" class="tb-btn dl-conv" disabled
+                title="把勾选的游戏转成 OGG（有损 q10，体积约 WAV 的 27%，输出到 OGG 文件夹）">转 OGG</button>
+        <!-- v6.0.4：手动「下载封面」。作用于**勾选的条目**，不重新下载音源。
+             v6.0.11：图不再进 %LOCALAPPDATA%，改成落到下载目录里的
+             ``Artworks\机种\游戏名\``（见 cover_art.set_cache_root），
+             并复制一份 cover.png 到已有的 WAV/FLAC/MP3/OGG/<游戏>/ 目录；
+             已经转好的 FLAC / MP3 顺带补图（走 _backfill_audio，绕开转换
+             记账 —— 否则「先转码后要封面」的用户再点一次「转 FLAC」也补不上）。 -->
+        <button id="dlCoverFetch" class="tb-btn dl-conv" disabled
+                title="给勾选的游戏抓封面（不重新下载音源）。图存到下载目录下的 Artworks\机种\游戏名\，已转好的 FLAC / MP3 会一并补上封面图。">下载封面</button>
+        <span id="dlCloudNote" class="dl-note"></span>
+      </div>
+
+      <div class="dl-prog">
+        <div class="dl-bar"><div id="dlBar" class="dl-bar-fill"></div></div>
+        <div id="dlStatus" class="dl-status">就绪 — 请在左侧选择机种</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 右：日志 + 试听 -->
+  <aside class="dl-right">
+    <div class="dl-col-head">
+      日志
+      <button id="dlLogClear" class="tb-btn dl-log-clear" title="清空显示（不影响后台日志）">清</button>
+    </div>
+    <div id="dlLog" class="dl-log"></div>
+
+    <!-- 封面（v6.0.1）：夹在「日志」和「试听」之间单独一块。
+         用户要求：「试听音乐时显示对应游戏的封面图」。
+         图来自 /api/dl/cover?game=…（后端按 FLAC/MP3/OGG/WAV 游戏目录的
+         cover.png → 封面缓存 的顺序找），找不到就显示占位音符。
+         可折叠：窗口矮的时候收起来，把高度让给日志和试听列表。 -->
+    <div class="dl-cover" id="dlCoverBox">
+      <div class="dl-col-head">
+        封面
+        <button id="dlCoverFold" class="tb-btn dl-log-clear"
+                title="收起 / 展开封面区">▾</button>
+      </div>
+      <div class="dl-cover-body" id="dlCoverBody">
+        <div class="dl-cover-frame">
+          <img id="dlCoverImg" alt="">
+          <span class="dl-cover-ph" id="dlCoverPh" aria-hidden="true">♪</span>
+        </div>
+        <div class="dl-cover-meta">
+          <div id="dlCoverGame" class="dl-cover-game">还没有在试听</div>
+          <div id="dlCoverTrack" class="dl-cover-track">点一首曲子，这里显示它所属游戏的封面</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 试听：下载页也能放刚转出来的 WAV（tkinter 版就有这个能力）。
+         列表由 /api/dl/wavs 提供（只给**相对**路径），播放走 /api/dl/audio。 -->
+    <div class="dl-play">
+      <div class="dl-col-head">
+        试听
+        <span id="dlPlayCount" class="dl-play-count">0 首</span>
+        <button id="dlPlayClear" class="tb-btn dl-log-clear"
+                title="清空试听列表（只清列表，不删除 WAV 文件）">清空</button>
+        <button id="dlPlayRefresh" class="tb-btn dl-log-clear" title="重新扫描 WAV 目录">刷</button>
+      </div>
+      <!-- v6.0.3：用户报「播放器进度无法调节，也没有下一曲、上一曲按钮」。
+           两处改动：
+           ① 播放键两边加「上一曲 / 下一曲」（`dlPrev` / `dlNext`）；
+           ② 进度条从「曲名下面那一小截」挪到**整行独占**，并且可以点、可以拖。
+              原来它只有 meta 那点宽度（约 150px），就算绑了事件也很难点中。 -->
+      <div class="dl-play-now">
+        <div class="dl-transport">
+          <button id="dlPrev" class="dl-skip" disabled title="上一曲"
+                  aria-label="上一曲">
+            <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"
+                 fill="none" stroke="currentColor" stroke-width="1.6"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M7.6 4 3.6 8l4 4"/><path d="M12.4 4 8.4 8l4 4"/>
+            </svg>
+          </button>
+          <button id="dlPlayBtn" class="dl-play-btn" disabled title="播放 / 暂停">▶</button>
+          <button id="dlNext" class="dl-skip" disabled title="下一曲"
+                  aria-label="下一曲">
+            <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"
+                 fill="none" stroke="currentColor" stroke-width="1.6"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8.4 4l4 4-4 4"/><path d="M3.6 4l4 4-4 4"/>
+            </svg>
+          </button>
+        </div>
+        <div class="dl-play-meta">
+          <div id="dlPlayName" class="dl-play-name">还没有转出的音频</div>
+        </div>
+        <span id="dlPlayTime" class="dl-play-time">0:00</span>
+        <!-- 音量（v5.2.4）：喇叭键 = 静音开关，滑块 = 音量，记住上次的值。
+             顺序放在时间后面 —— 播放键/曲名/进度才是主角，音量是常用但次要。 -->
+        <button id="dlVolBtn" class="dl-vol-btn" title="静音 / 取消静音"
+                aria-label="静音" aria-pressed="false">
+          <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"
+               fill="none" stroke="currentColor" stroke-width="1.4"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8.6 2.3 5.3 5.1H2.7v5.8h2.6l3.3 2.8z" fill="currentColor"
+                  stroke="none"/>
+            <path id="dlVolW1" d="M10.9 5.6a3.4 3.4 0 0 1 0 4.8"/>
+            <path id="dlVolW2" d="M12.7 3.8a6 6 0 0 1 0 8.4"/>
+            <path id="dlVolX" d="M11.2 6.1l3.1 3.1M14.3 6.1l-3.1 3.1"
+                  style="display:none"/>
+          </svg>
+        </button>
+        <input id="dlVol" class="dl-vol" type="range" min="0" max="100" step="1"
+               value="80" title="音量" aria-label="音量">
+        <!-- 进度条：点一下跳到那里，按住可以拖。键盘 ←/→ 5 秒、Home/End 首尾。 -->
+        <div id="dlPlaySeek" class="dl-play-seek" role="slider" tabindex="0"
+             aria-label="播放进度" aria-valuemin="0" aria-valuemax="100"
+             aria-valuenow="0" aria-valuetext="0:00">
+          <div id="dlPlayBar" class="dl-play-fill"></div>
+          <span id="dlPlayKnob" class="dl-play-knob"></span>
+        </div>
+      </div>
+      <!-- 频谱 / 波形（v5.9.6）：和主界面同一块面板，代码在 viz.js 里。
+           放在「正在播放」条和列表之间 —— 眼睛从曲名往下扫，正好看到声音长什么样。 -->
+      <div class="dl-viz-head">
+        <span class="dl-viz-label">频谱 / 波形</span>
+        <button class="viz-tog on" id="dlVizTog" title="显示 / 隐藏可视化">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M3 14.5c2.2 0 2.6-5 4.6-5s2.4 8 4.4 8 2.4-9 4.4-9 2.4 6 4.6 6"
+                  stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                  stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="viz-wrap dl-viz" id="dlVizWrap">
+        <canvas id="dlVizCanvas"></canvas>
+        <div class="viz-empty" id="dlVizEmpty">点一首开始试听，这里会实时画出频谱与波形</div>
+      </div>
+
+      <div id="dlPlayList" class="dl-play-list">
+        <div class="dl-empty">下载并转 WAV 后，这里会出现可试听的曲目</div>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<div id="dlToast" class="toast" hidden></div>
+
+<script src="/theme.js"></script>
+<script src="/cloud.js"></script>
+<script src="/viz.js"></script>
+<script src="/download.js"></script>
+</body>
+</html>

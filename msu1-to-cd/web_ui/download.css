@@ -1,0 +1,948 @@
+/* ═══════════════════════════════════════════════════════════
+   音源下载页 —— 与主界面同一套令牌（/app.css 的 :root）
+   布局：顶栏 + 三列（机种 260 / 列表 1fr / 日志 360）
+   ═══════════════════════════════════════════════════════════ */
+
+/* app.css 的 body 是给主界面用的（滚动 + 居中），这里要整屏固定三列 */
+html, body.dl-body {
+  height: 100%;
+  margin: 0;
+}
+body.dl-body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+}
+
+/* ---------- 顶栏 ---------- */
+.dl-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 52px;
+  flex: 0 0 52px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.dl-back {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-2);
+  color: var(--text-2);
+  text-decoration: none;
+  font-size: 15px;
+  transition: background var(--fast), color var(--fast);
+}
+.dl-back:hover { background: var(--surface-3); color: var(--text); }
+.dl-title { display: flex; align-items: baseline; gap: 8px; }
+.dl-title-main { font-family: var(--font-disp); font-size: 15px; font-weight: 600; }
+.dl-title-sub { font-size: 12px; color: var(--text-3); }
+.dl-top-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+/* ---------- 三列 ---------- */
+.dl-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 258px minmax(0, 1fr) 356px;
+  gap: 1px;
+  background: var(--border);
+}
+.dl-left, .dl-mid, .dl-right {
+  background: var(--bg);
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.dl-col-head {
+  display: flex;
+  align-items: center;
+  height: 34px;
+  flex: 0 0 34px;
+  padding: 0 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  border-bottom: 1px solid var(--border);
+}
+
+/* ---------- 左：机种树 ---------- */
+.dl-plat {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 6px 8px 10px;
+}
+/* 分组头：v5.9 起是**按钮**（可折叠）。原来是个 div，
+   机种涨到 49 个之后平铺一屏放不下，必须能收。 */
+.dl-grp {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin: 8px 0 3px;
+  padding: 5px 6px;
+  /* button 默认字体是系统 UI 字体，不 inherit 会比旁边的条目粗一号 */
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--warn);
+  letter-spacing: .03em;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background var(--fast), color var(--fast);
+}
+.dl-grp:hover { background: var(--surface-2); }
+.dl-grp:focus-visible { outline: 2px solid var(--accent-line); outline-offset: -1px; }
+.dl-grp:first-child { margin-top: 2px; }
+/* 箭头：▸ 收起 → 转 90° 变 ▾ 展开。只靠 body.hidden 的话用户看不出状态。
+   ⚠ 字号别调到 9px 以下 —— 实测 9px 时 ▸ 只剩一个点，看着像分隔符，
+   「这组能点」这件事就完全传达不出去（截图对比过）。 */
+.dl-grp-arrow {
+  flex: 0 0 auto;
+  width: 11px;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--warn);
+  opacity: .85;
+  transition: transform var(--fast);
+}
+.dl-grp.open .dl-grp-arrow { transform: rotate(90deg); }
+.dl-grp.open { color: var(--warn); }
+.dl-grp-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dl-grp-n {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-3);
+}
+.dl-grp-body { display: block; }
+.dl-grp-body[hidden] { display: none; }
+/* 「机种」标题右侧的全开/全收，尺寸比 tb-btn 小一号 —— 它是标题栏里的附件，
+   和下面的工具按钮不该长得一样重 */
+.dl-grp-all {
+  margin-left: auto;
+  padding: 2px 7px;
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.dl-plat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  color: var(--text-2);
+  transition: background var(--fast), color var(--fast);
+}
+.dl-plat-item:hover { background: var(--surface-2); color: var(--text); }
+.dl-plat-item.on {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+.dl-plat-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dl-plat-fmt {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-3);
+}
+.dl-plat-item.on .dl-plat-fmt { color: var(--accent-text); opacity: .8; }
+.dl-hint {
+  /* ⚠ flex: 0 0 auto 不能省 —— .dl-left 是 flex 列，.dl-plat 是 flex:1 1 auto，
+     提示条若用默认的 0 1 auto 会被**压缩**：机种列表一长，这两行字就被挤扁、
+     底部被裁（实测「缺新…」之后看不到）。 */
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 8px 12px 12px;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--text-3);
+  border-top: 1px solid var(--border);
+}
+
+/* ---------- 中：搜索 ---------- */
+.dl-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.dl-search-ico { color: var(--text-3); font-size: 14px; }
+.dl-search input[type="text"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-2);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12.5px;
+  outline: none;
+  transition: border-color var(--fast);
+}
+.dl-search input[type="text"]:focus { border-color: var(--accent-line); }
+.dl-count { flex: 0 0 auto; font-size: 11.5px; color: var(--text-2); }
+
+/* ---------- 中：列表 ---------- */
+.dl-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* 横向滚动交给 `.dl-rows`（它才是装行的容器）；表头不在里面，
+     靠 download.js 的 colSyncHead() 用 translateX 跟着走。
+     这里必须 hidden —— 表头被 --dl-w 撑宽后会溢出，不裁就会给
+     整个页面加一根横向滚动条。 */
+  overflow: hidden;
+}
+.dl-thead, .dl-row {
+  display: grid;
+  /* 最后一列（52px）是 v5.9.4 加的行内操作按钮：转 WAV / 加入试听。
+     状态列因此从 104px 收到 96px —— 四档状态文字最长「🎵 已转 WAV」，
+     96px 正好放得下，多给按钮 8px 更划算。
+
+     v6.0.1：整串宽度改成读 `--dl-cols`，由 download.js 在拖列宽时写入；
+     末尾那个 `1fr` 是**空轨道**（行里只有 7 个格子），吃掉剩余空间，
+     这样拖窄了也不会把内容拉成两半。不写变量时用的就是下面这串默认值。
+
+     v6.0.10：`min-width: var(--dl-w)` —— 每列独立之后，列宽合计可以超过
+     容器，靠这条把表格撑开、让 `.dl-rows` 出横向滚动条。合计没超过时
+     这条不起作用，末尾的 `1fr` 照旧吃余量。 */
+  grid-template-columns:
+    var(--dl-cols, 26px minmax(0, 1fr) 150px 84px 70px 96px 52px) 1fr;
+  min-width: var(--dl-w, 0);
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+}
+/* 表头每个格子都要能挂拖拽把手（绝对定位参照物）。
+   ⚠ min-height 不能省：``c-sel`` / ``c-act`` 是**空 span**，不写高度就是 0，
+     挂上去的把手 ``height: 100%`` 跟着变 0 —— 看得见、点不中（v6.0.9 实测）。 */
+.dl-thead > span { position: relative; min-width: 0; min-height: 18px; }
+/* 列宽拖拽把手（v6.0.1）：贴着格子右边界，宽 10px 方便抓。
+   ⚠ 只在表头出现 —— 行里挂把手会让每一行都多出一层命中区，
+     点击行选中就变得时灵时不灵。 */
+.dl-thead .c-grip {
+  position: absolute;
+  top: 0;
+  right: -5px;
+  width: 10px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 3;
+  /* 不能挡着表头的点击（表头没有点击行为，但别影响 hover 文案） */
+  touch-action: none;
+}
+.dl-thead .c-grip::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 5px;
+  bottom: 5px;
+  width: 1px;
+  background: var(--border-3);
+  opacity: 0;
+  transition: opacity var(--fast), background var(--fast);
+}
+.dl-thead .c-grip:hover::after,
+.dl-thead .c-grip.on::after { opacity: 1; background: var(--accent); }
+/* 拖拽期间：全局改成列宽光标，并且**禁止选中文字**
+   （不然拖到一半会把表头文字刷成蓝色，看着像界面坏了）。 */
+body.dl-col-drag { cursor: col-resize; user-select: none; }
+body.dl-col-drag .dl-row { cursor: col-resize; }
+.dl-thead {
+  height: 30px;
+  flex: 0 0 30px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.dl-thead .c-size { text-align: right; }
+.dl-rows {
+  flex: 1 1 auto;
+  /* v6.0.10：横向也要能滚（每列独立之后表格可以比容器宽）。
+     纵向原来是 overflow-y: auto，现在两个方向都由这一层管。 */
+  overflow: auto;
+  min-height: 0;
+  /* 虚拟滚动的窗口层会不断改 transform —— 把这层的重排/重绘圈在自己
+     身上，别让浏览器为了它反复算整个表格。不用 strict：strict 带 size
+     包含，会把这个 flex 子项的高度算成 0。 */
+  contain: layout paint;
+}
+/* 虚拟滚动（v5.9.1）：.dl-vs 只有高度（总行数 × 27px），负责撑出
+   滚动条；.dl-vs-win 绝对定位 + translateY，只装可视窗口那几十行。
+   ⚠ 27px 与 download.js 的 ROW_H 必须一致。 */
+.dl-vs {
+  position: relative;
+  width: 100%;
+  /* v6.0.10：行宽跟着列宽合计走（行是绝对定位在 .dl-vs-win 里铺满它的） */
+  min-width: var(--dl-w, 0);
+}
+.dl-vs-win {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  will-change: transform;
+}
+.dl-row {
+  height: 27px;
+  font-size: 12.5px;
+  color: var(--text-2);
+  border-bottom: 1px solid transparent;
+  cursor: pointer;
+}
+.dl-row:hover { background: var(--surface-2); }
+.dl-row.on { background: var(--accent-soft); color: var(--text); }
+.dl-row .c-sel {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid var(--border-3);
+  font-size: 9px;
+  color: transparent;
+}
+.dl-row.on .c-sel {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.dl-row .c-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dl-row .c-zh {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--accent-text);
+}
+.dl-row .c-zh.weak { color: var(--text-3); }
+/* ⚠ v6.0.10：日期和大小**不许换行**。行高锁死在 27px（虚拟滚动按 ROW_H
+   算位置），列一窄就折成两行、顶出格子 —— 用户截图里的「2020-08-」+「18」
+   就是这么来的。太窄就省略号，宁可看不全也不要把行撑破。 */
+.dl-row .c-date {
+  font-family: var(--mono); font-size: 11px; color: var(--text-3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dl-row .c-size {
+  text-align: right; font-family: var(--mono); font-size: 11px;
+  white-space: nowrap; overflow: hidden;
+}
+.dl-row .c-state { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dl-row .c-state.ok { color: var(--ok); }
+.dl-row .c-state.bad { color: #F87171; }
+/* 行内操作按钮（v5.9.4）：转 WAV / 加入试听。
+   为什么平时压着、悬停才亮：一屏几十行，每行一颗实心按钮会把列表变成
+   按钮墙，反而看不清状态。但**不能太淡** —— 用户是来找「怎么才能转 WAV」
+   的，0.55 的透明度实测（截图上看）几乎看不见，等于没做。0.85 起步：
+   平时读得清，悬停变实心。 */
+.dl-row .c-act { display: flex; justify-content: flex-end; }
+.dl-act {
+  height: 19px;
+  padding: 0 7px;
+  border-radius: 4px;
+  border: 1px solid var(--border-3);
+  background: transparent;
+  color: var(--text-2);
+  font-family: var(--font);
+  font-size: 10.5px;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  opacity: 0.85;
+  transition: opacity var(--fast), color var(--fast),
+              border-color var(--fast), background var(--fast);
+}
+.dl-row:hover .dl-act { opacity: 1; }
+.dl-act:hover {
+  color: var(--accent-text);
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.dl-act:disabled { opacity: 0.4; cursor: default; }
+.dl-act.primary { opacity: 1; color: var(--accent-text); border-color: var(--accent-line); }
+.dl-empty, .dl-more {
+  padding: 26px 16px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+.dl-more { padding: 10px; border-top: 1px dashed var(--border-2); }
+
+/* ---------- 中：工具区 ---------- */
+.dl-tools {
+  flex: 0 0 auto;
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.dl-tool-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 6px;
+}
+.dl-tool-row.dl-wrap { flex-wrap: wrap; }
+.dl-tool-row:last-child { margin-bottom: 0; }
+.dl-lab { flex: 0 0 auto; font-size: 11.5px; color: var(--text-3); }
+.dl-dest {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 27px;
+  padding: 0 9px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-2);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  outline: none;
+}
+.dl-dest:focus { border-color: var(--accent-line); }
+.dl-sel {
+  height: 27px;
+  padding: 0 6px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-2);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 12px;
+}
+.dl-chk {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--text-2);
+  cursor: pointer;
+  user-select: none;
+}
+.dl-chk input { accent-color: var(--accent); }
+.dl-chk.dis { opacity: .45; cursor: not-allowed; }
+.dl-start { min-width: 104px; }
+.dl-note { font-size: 11px; color: var(--text-3); }
+
+/* ---------- 中：进度 ---------- */
+.dl-prog { margin-top: 4px; }
+.dl-bar {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.dl-bar-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: var(--grad);
+  transition: width 200ms var(--ease);
+}
+.dl-status {
+  margin-top: 5px;
+  font-size: 11.5px;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- 右：日志 ---------- */
+.dl-log-clear {
+  margin-left: auto;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 10.5px;
+}
+.dl-log {
+  /* v6.0.1：`flex: 1 1 0`（basis 0）而不是 `1 1 auto` —— 右栏现在是
+     「日志 / 封面 / 试听」三段，日志必须**吃掉全部剩余高度**，否则
+     底部会空出一条。basis 0 让它按剩余空间算，不掺自己内容的高度。 */
+  flex: 1 1 0;
+  /* 给个下限 —— 窗口一矮就被压成一条缝，看不出在滚什么 */
+  min-height: 90px;
+  overflow-y: auto;
+  padding: 8px 12px 14px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.65;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.dl-log .ok { color: var(--ok); }
+.dl-log .bad { color: #F87171; }
+.dl-log .warn { color: var(--warn); }
+
+/* ---------- 右：封面（v6.0.1） ---------- */
+/* 夹在日志和试听之间。日志是 flex:1 1 auto，这块和试听都是 0 0 auto ——
+   窗口矮的时候被压缩的是日志（它可滚），封面和播放条不会被挤走。 */
+.dl-cover {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.dl-cover-body {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 12px;
+}
+/* 折叠：只留标题栏。状态记在 localStorage（见 download.js）。 */
+.dl-cover.fold .dl-cover-body { display: none; }
+.dl-cover.fold #dlCoverFold { transform: rotate(-90deg); }
+#dlCoverFold { transition: transform var(--fast); }
+.dl-cover-frame {
+  position: relative;
+  flex: 0 0 96px;
+  width: 96px;
+  height: 96px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-3);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, .28);
+  display: grid;
+  place-items: center;
+}
+.dl-cover-frame img {
+  width: 100%;
+  height: 100%;
+  /* v6.0.7：轮播的图**两种比例**混在一起 —— 盒绘是竖版（IGDB 528×748、
+     libretro 各种竖版），游戏截图是横版（480×272）。
+     原来用 cover（裁剪填满）在方形框里会把盒绘的上下切掉一大截；
+     contain 两种都能完整看到，代价是留白（框底色是 surface-3，不难看）。
+     封面区的职责是「让用户认出这个游戏」，切掉一半的图反而认不出。 */
+  object-fit: contain;
+  display: none;
+}
+/* 有图才显示 img、藏掉音符；没图（404 / 还没选曲）反过来。 */
+.dl-cover.has .dl-cover-frame img { display: block; }
+.dl-cover.has .dl-cover-ph { display: none; }
+.dl-cover-ph {
+  font-size: 30px;
+  line-height: 1;
+  color: var(--text-3);
+  opacity: .55;
+  user-select: none;
+}
+.dl-cover-meta { flex: 1 1 auto; min-width: 0; }
+.dl-cover-game {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text);
+  /* 两行截断：游戏名普遍很长（"Dungeons & Dragons - Shadow Over Mystara"），
+     单行会只剩前半截，三行又把封面区撑高。 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.dl-cover-track {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- 右：试听 ---------- */
+/* 日志区是 flex:1 1 auto，这块是 flex:0 1 auto —— 日志先让出高度；
+   还不够时试听块自己收（列表 min-height 72px），不会把播放条挤出屏幕。
+   v6.0.1：原来是 0 0 auto（完全不让），加了封面块之后会顶到屏幕外。 */
+.dl-play {
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.dl-play .dl-col-head { border-bottom: 1px solid var(--border); }
+.dl-play-count {
+  margin-left: auto;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-3);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.dl-play-count + .dl-log-clear { margin-left: 6px; }
+/* 试听标题栏现在有**两颗**按钮（清空 / 刷）。.dl-log-clear 自带
+   margin-left:auto，两颗都带的话剩余空间会被平分，中间裂开一道缝 ——
+   只让第一颗吃剩余空间，第二颗固定 6px。 */
+#dlPlayClear { margin-left: auto; }
+#dlPlayRefresh { margin-left: 6px; }
+/* v6.0.3：改成 grid —— 第一行「传输控制 / 曲名 / 音量」，第二行
+   「进度条 / 时间」。原来是 flex + 进度条塞在曲名下面，宽度只有 meta
+   那一截（约 150px），拖起来几乎不可能命中。
+
+   时间从第一行挪到第二行末尾（v6.0.3 定稿）：一列只有 356px，四样东西
+   挤一行时曲名只剩 110px，连「02_Bombing Mission · F…」都显示不全。
+   放到进度条右边之后曲名多出 48px，而进度条仍有 280px —— 拖起来足够。 */
+.dl-play-now {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 5px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.dl-transport {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+/* 上一曲 / 下一曲：比播放键小一圈、无底色的「幽灵键」。
+   视觉上不能跟播放键抢 —— 主角永远是中间那颗。 */
+.dl-skip {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: color var(--fast), background var(--fast), opacity var(--fast);
+}
+.dl-skip:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
+.dl-skip:disabled { opacity: .3; cursor: not-allowed; }
+.dl-skip:active:not(:disabled) { transform: scale(.92); }
+.dl-play-btn {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background var(--fast), color var(--fast), opacity var(--fast);
+}
+.dl-play-btn:hover:not(:disabled) { background: var(--accent); color: #fff; }
+.dl-play-btn:disabled { opacity: .4; cursor: not-allowed; }
+.dl-play-meta {
+  grid-column: 2;
+  grid-row: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.dl-play-name {
+  font-size: 11.5px;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dl-play-name.on { color: var(--text); }
+/* 进度条（v6.0.3）：整行独占，可点可拖。
+   视觉只有 4px 高，但**命中区被 ::after 撑到 16px** —— 4px 的细条
+   在触控板上根本点不中，而把视觉做粗又会抢走曲名的注意力。 */
+.dl-play-seek {
+  grid-column: 1 / 4;
+  grid-row: 2;
+  position: relative;
+  height: 4px;
+  margin: 1px 0 0;
+  border-radius: 999px;
+  background: var(--surface-3);
+  cursor: pointer;
+  touch-action: none;            /* 触屏上别让浏览器抢去做滚动 */
+}
+.dl-play-seek::after {
+  content: "";
+  position: absolute;
+  inset: -6px 0;                 /* 命中区 16px，视觉仍是 4px */
+}
+.dl-play-seek:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 3px;
+}
+.dl-play-seek.idle { cursor: default; }
+.dl-play-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: var(--grad);
+  pointer-events: none;
+}
+/* 滑块头：只在「有音频 + 悬停/拖动/聚焦」时出现。
+   常显会让一条静态的细线上多出一个突兀的圆点。 */
+.dl-play-knob {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--surface);
+  transform: translateY(-50%) scale(0);
+  transition: transform var(--fast);
+  pointer-events: none;
+}
+.dl-play-seek:hover .dl-play-knob,
+.dl-play-seek:focus-visible .dl-play-knob,
+.dl-play-seek.dragging .dl-play-knob { transform: translateY(-50%) scale(1); }
+.dl-play-seek.dragging .dl-play-fill { background: var(--accent); }
+body.dl-seek-drag { cursor: pointer; user-select: none; }
+.dl-play-time {
+  grid-column: 4;
+  grid-row: 2;
+  justify-self: end;
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-3);
+}
+/* 音量（v5.2.4）：喇叭键 + 滑块。滑块用 accent-color 上色，
+   Chromium 会把轨道填充和滑块头都染成主题色，不用手写两套伪元素。 */
+.dl-vol-btn {
+  grid-column: 3;
+  grid-row: 1;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: color var(--fast), background var(--fast);
+}
+.dl-vol-btn:hover { background: var(--surface-2); color: var(--text); }
+/* 静音时变琥珀色 + 喇叭上划叉 —— 一眼能看出「不是没声音，是我按了静音」。
+   不用红色：红色在本工程里是「转换失败」的语义，静音不是错误。 */
+.dl-vol-btn.muted { color: var(--warn); }
+/* 滑块要**自绘**，不能用 accent-color：那样未填充的那段轨道会跟着系统
+   配色走，深色主题下是一条刺眼的白线。这里用 --vol-pct（JS 里跟着音量
+   更新）画一个两段式渐变，填充色和轨道色都走主题变量。 */
+.dl-vol {
+  -webkit-appearance: none;
+  appearance: none;
+  grid-column: 4;
+  grid-row: 1;
+  flex: 0 0 52px;
+  width: 52px;
+  height: 14px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  --vol-pct: 80%;
+}
+.dl-vol::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(to right,
+    var(--accent) 0, var(--accent) var(--vol-pct),
+    var(--surface-3) var(--vol-pct), var(--surface-3) 100%);
+}
+.dl-vol::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 9px;
+  height: 9px;
+  margin-top: -3px;                  /* (轨道 3px - 滑块 9px) / 2 */
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--surface);
+}
+.dl-vol:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
+/* ---------- 频谱 / 波形（v5.9.6） ----------
+   `.viz-wrap` / `.viz-tog` / `.viz-empty` 的样式在 app.css 里（本页也引了
+   它，同一套令牌），这里只补下载页特有的两处：标题行 + 面板高度。
+   高度比主界面矮一点（120 vs 150）—— 这一列下面还要放试听列表。 */
+.dl-viz-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px 0;
+}
+.dl-viz-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.dl-viz {
+  margin: 7px 10px 9px;
+  height: 120px;
+  /* 同 .viz-wrap 里那条：这一列是 flex，默认 min-width:auto 会被内部
+     内容顶破。canvas 尺寸另有 .viz-wrap > canvas 钉死，这里是双保险。 */
+  min-width: 0;
+}
+
+.dl-play-list {
+  /* v6.0.1：右栏多了「封面」一块，纵向空间变紧。这里从写死 max-height
+     改成「可伸可缩」—— 高度够时最多 168px，不够时先压到 72px（还能滚），
+     把空间让给封面和播放条，而不是让整块被裁到屏幕外。 */
+  flex: 1 1 auto;
+  min-height: 72px;
+  max-height: 168px;
+  overflow-y: auto;
+  padding: 4px 6px 6px;
+}.dl-play-list .dl-empty { padding: 14px 8px; font-size: 11.5px; }
+.dl-play-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 6px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-size: 11.5px;
+  color: var(--text-2);
+}
+.dl-play-row:hover { background: var(--surface-2); color: var(--text); }
+.dl-play-row.on {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+.dl-play-row .p-ico { flex: 0 0 auto; width: 12px; font-size: 9px; color: var(--text-3); }
+.dl-play-row.on .p-ico { color: var(--accent-text); }
+.dl-play-row .p-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dl-play-row .p-game {
+  flex: 0 0 auto;
+  max-width: 88px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10.5px;
+  color: var(--text-3);
+}
+.dl-play-row .p-size {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-3);
+}
+/* v5.9.9：格式标记。两种格式都转过的游戏会在列表里出现两条同名曲目
+   （一条 .wav、一条 .flac），不给标记就分不清点的是哪个 —— FLAC 体积
+   只有 35%，看 size 能猜，但「猜」不该是界面的要求。 */
+.dl-play-row .p-fmt {
+  flex: 0 0 auto;
+  padding: 0 4px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 8.5px;
+  line-height: 1.5;
+  letter-spacing: .04em;
+  color: var(--text-3);
+}
+.dl-play-row .p-fmt.flac {
+  color: var(--accent-text);
+  border-color: var(--accent-line);
+  background: var(--grad-soft);
+}
+/* v6.0.0：MP3 / OGG 是**有损**，用斜体 + 弱色跟无损的 FLAC 区分 ——
+   免得用户以为「体积小是因为压缩得好」。 */
+.dl-play-row .p-fmt.mp3,
+.dl-play-row .p-fmt.ogg {
+  font-style: italic;
+  opacity: .85;
+}
+/* 转换按钮（「转 WAV」/「转 FLAC」）—— 和「上传云盘」同一排，
+   但要让人一眼看出它们是「动作」而不是「视图切换」，所以描边稍亮一点。 */
+.dl-conv { border-color: var(--border-2); }
+.dl-conv:hover:not(:disabled) {
+  color: var(--accent-text);
+  border-color: var(--accent-line);
+}
+.dl-conv:disabled { opacity: .42; cursor: not-allowed; }
+.dl-play-list::-webkit-scrollbar { width: 9px; }
+.dl-play-list::-webkit-scrollbar-thumb {
+  background: var(--border-3);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* ---------- 滚动条（与主界面一致） ---------- */
+.dl-rows::-webkit-scrollbar,
+.dl-plat::-webkit-scrollbar,
+.dl-log::-webkit-scrollbar { width: 9px; }
+.dl-rows::-webkit-scrollbar-thumb,
+.dl-plat::-webkit-scrollbar-thumb,
+.dl-log::-webkit-scrollbar-thumb {
+  background: var(--border-3);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.dl-rows::-webkit-scrollbar-thumb:hover,
+.dl-plat::-webkit-scrollbar-thumb:hover,
+.dl-log::-webkit-scrollbar-thumb:hover { background: var(--text-3); background-clip: padding-box; }
+
+/* ---------- 窄屏：日志折叠到下面 ---------- */
+@media (max-width: 1180px) {
+  .dl-main { grid-template-columns: 216px minmax(0, 1fr); }
+  .dl-right { display: none; }
+}
+
+/* ---------- v6.0.8「更新全部列表」按钮 ---------- */
+/* 跑起来之后键上的字会变长（「停止更新 12/33」）。.tb-btn 是 flex，
+   不锁 nowrap 的话窄窗口下会被压成两行、把这一排撑高。 */
+.dl-refresh-all { white-space: nowrap; }
+/* 「正在跑」态：用主色描边 + 淡底，和旁边一排普通键区分开。
+   只加颜色不加尺寸，避免这一排在状态切换时抖动。 */
+.dl-refresh-all.on {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+.dl-refresh-all.on:hover {
+  background: var(--accent-soft);
+  filter: brightness(1.18);
+}

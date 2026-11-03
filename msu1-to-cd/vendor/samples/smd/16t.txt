@@ -1,0 +1,28 @@
+***********************************************
+* Megadrive VGM music package                 *
+* http://project2612.bandwidthmonkey.net/     *
+***********************************************
+
+Game name:           16t
+System:              Sega Mega Drive/Genesis
+Complete music dump: Yes
+
+Original author:     Haruyo Oguro
+Publisher:           Sega
+Package created by:  Koto
+Package version:     1.00
+
+Files, in sound test order:
+
+Name                                Length:
+                                    Total  Loop
+Title Theme                         0:18   0:18
+BGM 1                               0:17   0:15
+BGM 2                               0:24   0:22
+Round Clear                         0:04   -
+Staff Roll                          0:41   0:40
+Game Over                           0:07   -
+
+Notes:
+Initial release: 1.00
+-Koto

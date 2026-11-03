@@ -1,0 +1,11 @@
+# 本项目文件混合 GBK/UTF-8 且有二进制素材，禁止任何换行/编码转换，
+# 保证 checkout 回来与提交时逐字节一致。
+* -text
+
+*.exe binary
+*.dll binary
+*.pyd binary
+*.gz binary
+*.png binary
+*.ico binary
+*.pcm binary

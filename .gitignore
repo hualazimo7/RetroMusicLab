@@ -1,0 +1,45 @@
+# ============================================================
+# MSU1Converter / RetroMusic Lab —— 只把「源码 + 文档 + 门禁」入库
+# 成品 exe / zip / 构建树 / 运行日志 / BIOS 一律不入库
+# ============================================================
+
+# ---- 构建与运行产物 ----
+__pycache__/
+*.py[cod]
+*.pyo
+*.o
+*.obj
+*.pdb
+*.ilk
+*.exp
+msu1-to-cd/build/
+msu1-to-cd/dist/
+msu1-to-cd/output/
+msu1-to-cd/logs/
+msu1-to-cd/tmp/
+msu1-to-cd/_pyi_unpack_tmp/
+**/_MEI*/
+tools/*/obj/
+tools/*/build/
+
+# ---- 交付物（成品 68MB exe + 产品 zip，可重建）----
+deliverables/
+*.zip
+*.7z
+*.rar
+
+# ---- 版权受限素材：PS1 BIOS 不进仓库 ----
+msu1-to-cd/bios/
+**/scph*.bin
+
+# ---- 另一个独立工具（不在本仓库范围）----
+wsc_flasher_build/
+
+# ---- 本机配置 / 记忆 / 临时 ----
+.workbuddy/
+*.tmp
+*.bak
+*.log
+
+# ---- 本机 AI 记忆（含个人路径，不入公开库）----
+.workbuddy-ai/
