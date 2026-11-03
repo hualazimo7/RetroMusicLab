@@ -83,7 +83,7 @@
    `msu1-to-cd/tools/<name>/` 下，与发布包中二进制**同版本**。
 3. **许可全文**：GPL-2.0 / GPL-3.0 / LGPL / MPL / ISC / BSD / MIT 原文分别在
    上表所列路径，未做删改。
-4. **获取方式**：仓库 <https://github.com/hualazimo7/MSU1Converter> 即为源码分发点；
+4. **获取方式**：仓库 <https://github.com/hualazimo7/RetroMusicLab> 即为源码分发点；
    Release 页的每个二进制都能在该 tag 的 `tools/` 下找到对应源码。
 5. **HE 核的特殊说明**：Highly Experimental 源码树内没有独立许可文件。
    本项目按最严格的 GPL-2.0 处理并随附全部源码；若上游另有条款，以 upstream 为准。
