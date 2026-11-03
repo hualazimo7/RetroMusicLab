@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" width="960" height="600" role="img" aria-labelledby="title desc">
+  <title id="title">RetroMusic Lab 架构</title>
+  <desc id="desc">三类输入源经识别调度、四条解码路径、统一 PCM 中间层，输出 WAV、FLAC、MP3/OGG 与 BIN+CUE。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#888780" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <style>
+      .bg { fill: #ffffff; }
+      .t  { font-family: "Segoe UI", "Microsoft YaHei", sans-serif; font-size: 16px; font-weight: 600; }
+      .s  { font-family: "Segoe UI", "Microsoft YaHei", sans-serif; font-size: 13px; }
+      .blue   { fill: #E6F1FB; stroke: #185FA5; stroke-width: 1; }
+      .amber  { fill: #FAEEDA; stroke: #854F0B; stroke-width: 1; }
+      .gray   { fill: #F1EFE8; stroke: #5F5E5A; stroke-width: 1; }
+      .tb { fill: #0C447C; }
+      .ts { fill: #185FA5; }
+      .ta { fill: #633806; }
+      .tas{ fill: #854F0B; }
+      .tg { fill: #2C2C2A; }
+      .tgs{ fill: #5F5E5A; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="960" height="600" rx="18"/>
+
+  <!-- 输入 -->
+  <g>
+    <rect class="blue" x="60" y="36" width="260" height="70" rx="12"/>
+    <text class="t tb" x="190" y="63" text-anchor="middle">本地音源</text>
+    <text class="s ts" x="190" y="86" text-anchor="middle">文件 · 文件夹 · 平铺包（递归 6 层）</text>
+  </g>
+  <g>
+    <rect class="blue" x="350" y="36" width="260" height="70" rx="12"/>
+    <text class="t tb" x="480" y="63" text-anchor="middle">下载页</text>
+    <text class="s ts" x="480" y="86" text-anchor="middle">30 个索引包 · 38,805 条音源</text>
+  </g>
+  <g>
+    <rect class="blue" x="640" y="36" width="260" height="70" rx="12"/>
+    <text class="t tb" x="770" y="63" text-anchor="middle">光盘镜像</text>
+    <text class="s ts" x="770" y="86" text-anchor="middle">CUE / BIN / ISO / IMG / RAW</text>
+  </g>
+
+  <path d="M480 106 L480 136" fill="none" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 识别与调度 -->
+  <g>
+    <rect class="gray" x="60" y="140" width="840" height="70" rx="12"/>
+    <text class="t tg" x="480" y="167" text-anchor="middle">识别与调度　chip_formats · 48 个扩展名 / 约 33 个机种</text>
+    <text class="s tgs" x="480" y="190" text-anchor="middle">统一任务队列 · 进度回调 · 静音 / 循环点 / 字节序处理策略</text>
+  </g>
+
+  <path d="M480 210 L480 240" fill="none" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 四条解码路径 -->
+  <g>
+    <rect class="blue" x="60" y="244" width="190" height="70" rx="12"/>
+    <text class="t tb" x="155" y="271" text-anchor="middle">芯片模拟</text>
+    <text class="s ts" x="155" y="294" text-anchor="middle">libgme + 9 个原生核</text>
+  </g>
+  <g>
+    <rect class="blue" x="276" y="244" width="190" height="70" rx="12"/>
+    <text class="t tb" x="371" y="271" text-anchor="middle">内存快照</text>
+    <text class="s ts" x="371" y="294" text-anchor="middle">PSF / 2SF / GSF · 需 BIOS</text>
+  </g>
+  <g>
+    <rect class="blue" x="492" y="244" width="190" height="70" rx="12"/>
+    <text class="t tb" x="587" y="271" text-anchor="middle">流式音频</text>
+    <text class="s ts" x="587" y="294" text-anchor="middle">FFmpeg · vgmstream</text>
+  </g>
+  <g>
+    <rect class="blue" x="708" y="244" width="190" height="70" rx="12"/>
+    <text class="t tb" x="803" y="271" text-anchor="middle">光盘音频</text>
+    <text class="s ts" x="803" y="294" text-anchor="middle">CD-DA · XA-ADPCM</text>
+  </g>
+
+  <path d="M480 314 L480 344" fill="none" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- PCM 中间层 -->
+  <g>
+    <rect class="gray" x="60" y="348" width="840" height="70" rx="12"/>
+    <text class="t tg" x="480" y="375" text-anchor="middle">统一中间层：PCM 44.1 kHz / 16 bit / 立体声</text>
+    <text class="s tgs" x="480" y="398" text-anchor="middle">分块解码 · 7:6 多相 FIR 重采样 · 临时文件走 tmpdir</text>
+  </g>
+
+  <path d="M480 418 L480 448" fill="none" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 输出 -->
+  <g>
+    <rect class="amber" x="60" y="452" width="190" height="70" rx="12"/>
+    <text class="t ta" x="155" y="479" text-anchor="middle">WAV</text>
+    <text class="s tas" x="155" y="502" text-anchor="middle">16 bit / 44.1 kHz 直出</text>
+  </g>
+  <g>
+    <rect class="amber" x="276" y="452" width="190" height="70" rx="12"/>
+    <text class="t ta" x="371" y="479" text-anchor="middle">FLAC</text>
+    <text class="s tas" x="371" y="502" text-anchor="middle">无损 · int16 直通</text>
+  </g>
+  <g>
+    <rect class="amber" x="492" y="452" width="190" height="70" rx="12"/>
+    <text class="t ta" x="587" y="479" text-anchor="middle">MP3 / OGG</text>
+    <text class="s tas" x="587" y="502" text-anchor="middle">float32 · 落盘自检</text>
+  </g>
+  <g>
+    <rect class="amber" x="708" y="452" width="190" height="70" rx="12"/>
+    <text class="t ta" x="803" y="479" text-anchor="middle">BIN + CUE</text>
+    <text class="s tas" x="803" y="502" text-anchor="middle">音频 CD · 可烧录</text>
+  </g>
+
+  <text class="s tgs" x="60" y="556">界面：Web（本地 HTTP 后端 + Edge/Chrome --app 窗口，正式线）· tkinter（兜底）· Qt（冻结）</text>
+  <text class="s tgs" x="60" y="578">质量：1761 条 Web 门禁 + 232 条 exe 打包验收 · 153 个门禁/审计脚本</text>
+</svg>
