@@ -115,7 +115,7 @@ catalog of 38,805 source packages and optional NetEase Cloud upload.</sub>
 | 其它音频 | `.mp3` `.wav` `.flac` `.ape` | 仅光盘镜像分支 |
 | 采样库 | `.psflib` `.psf2lib` `.qsflib` `.usflib` `.2sflib` `.ssflib` `.dsflib` | 只配合主文件，单独转没有意义 |
 
-完整清单与逐格式说明见 Release 附件里的《使用说明》，代码里的唯一真源是
+完整清单与逐格式说明见 [使用说明](docs/使用说明-v6.0.12.md)，代码里的唯一真源是
 `msu1-to-cd/chip_formats.py`。
 
 ## 界面与工作流
