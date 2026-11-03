@@ -11,7 +11,7 @@
   <img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-0078D4?style=flat-square">
   <img alt="Python" src="https://img.shields.io/badge/python-3.14-3776AB?style=flat-square">
-  <a href="https://github.com/hualazimo7/MSU1Converter/releases/latest"><img alt="Release" src="https://img.shields.io/badge/release-v6.0.12-orange?style=flat-square"></a>
+  <a href="https://github.com/hualazimo7/RetroMusicLab/releases/latest"><img alt="Release" src="https://img.shields.io/badge/release-v1.0-orange?style=flat-square"></a>
   <img alt="Formats" src="https://img.shields.io/badge/formats-48%20ext%20%2F%2033%20systems-8957e5?style=flat-square">
 </p>
 
@@ -126,7 +126,7 @@ catalog of 38,805 source packages and optional NetEase Cloud upload.</sub>
 | 其它音频 | `.mp3` `.wav` `.flac` `.ape` | 仅光盘镜像分支 |
 | 采样库 | `.psflib` `.psf2lib` `.qsflib` `.usflib` `.2sflib` `.ssflib` `.dsflib` | 只配合主文件 |
 
-完整清单与逐格式说明见 [使用说明](docs/使用说明-v6.0.12.md)，代码里的唯一真源是
+完整清单与逐格式说明见 [使用说明](docs/使用说明-v1.0.md)，代码里的唯一真源是
 `msu1-to-cd/chip_formats.py`。
 
 ## 🖥️ 界面与工作流
@@ -159,11 +159,11 @@ catalog of 38,805 source packages and optional NetEase Cloud upload.</sub>
 
 ### 用发布包（推荐）
 
-1. 到 [Releases](https://github.com/hualazimo7/MSU1Converter/releases/latest) 下载
-   `MSU1Converter-v6.0.12-web-win64.zip`（约 68 MB）。
+1. 到 [Releases](https://github.com/hualazimo7/RetroMusicLab/releases/latest) 下载
+   `RetroMusicLab-v1.0-win64.zip`（约 68 MB）。
 2. 解压到一个**你有写权限**的目录，例如 `D:\RetroMusic\`。
    ⚠️ 不要放 `C:\Program Files\`（写不了日志和配置），也不要放 `%TEMP%`。
-3. 双击 `MSU1Converter-web.exe`。冷启动 2~3 秒（NVMe）；机械盘或开着实时扫描的杀软
+3. 双击 `RetroMusicLab.exe`。冷启动 2~3 秒（NVMe）；机械盘或开着实时扫描的杀软
    可能要 20~60 秒，这期间没有窗口、没有日志，**先等 30 秒**。
 4. 起不来就看 exe 旁边的 `logs\startup.log`，最后一行就是卡在哪一步。
 
@@ -173,7 +173,7 @@ catalog of 38,805 source packages and optional NetEase Cloud upload.</sub>
 
 ### 用单个 exe
 
-也可以只下 `MSU1Converter-web.exe`，双击即用；但 `.wem` / `.fsb` 等格式依赖的
+也可以只下 `RetroMusicLab.exe`，双击即用；但 `.wem` / `.fsb` 等格式依赖的
 vgmstream 也已内嵌，**不需要再找 DLL**。
 
 ## 🛠️ 从源码运行
@@ -201,7 +201,7 @@ cd msu1-to-cd
 python build_web_pyi.py
 ```
 
-产物在 `build/MSU1Converter-web-pyi/MSU1Converter-web.exe`。
+产物在 `build/RetroMusicLab-pyi/RetroMusicLab.exe`。
 ⚠️ 脚本**不会**自动复制到 `dist/`，要手动 copy；打包前必须关掉正在运行的旧 exe，
 否则 PyInstaller 在 assemble 阶段会因文件占用直接失败。
 
@@ -262,7 +262,7 @@ XA-ADPCM 布局、CD-DA 字节序等专题）。
 
 ```bat
 python vendor/test_web_ui.py
-python vendor/check_web_exe.py --exe ..\deliverables\v6.0.12-web\MSU1Converter-web.exe
+python vendor/check_web_exe.py --exe ..\deliverables\v1.0-web\RetroMusicLab.exe
 ```
 
 几条被写进流程的经验：
@@ -277,7 +277,7 @@ python vendor/check_web_exe.py --exe ..\deliverables\v6.0.12-web\MSU1Converter-w
 - 💾 **PSF / PSF2 需要 BIOS**：程序不含、也不分发 Sony BIOS，需用户指向自己的文件。
 - 🖱️ **浏览器拖放拿不到路径**：Chromium 不提供 `File.path`。拖入后会自动弹原生选择框，
   让你选同一个文件夹；想一步到位就直接点「添加文件夹」。
-- 🖼️ **封面宁缺勿错**：库里有续作时，名字编号对不上就不贴（v6.0.12 起的策略）。
+- 🖼️ **封面宁缺勿错**：库里有续作时，名字编号对不上就不贴（v1.0 起的策略）。
 - 💿 **光盘镜像只处理音频轨**：CD-DA 与数据轨里的 XA-ADPCM；不做视频/数据提取。
 - 🗓️ **索引是静态快照**：`index/*.json.gz` 构建于 2026-10-18，重新抓取需跑
   `vendor/build_index.py` 后重新打包。
@@ -289,7 +289,7 @@ python vendor/check_web_exe.py --exe ..\deliverables\v6.0.12-web\MSU1Converter-w
 
 **双击没反应？**
 看 exe 旁的 `logs\startup.log`。没有这个文件，就看任务管理器里有没有
-`MSU1Converter-web` 进程：有，是在解包/被杀软扫描；没有，多半被系统策略拦了，
+`RetroMusicLab` 进程：有，是在解包/被杀软扫描；没有，多半被系统策略拦了，
 把 exe 加进杀软白名单。
 
 **转出来全是静音？**
@@ -305,7 +305,7 @@ v5.9.18 之前的老版本有编码 bug（int16 直传 libsndfile），升级到
 
 ## 🤝 参与与反馈
 
-- 🐛 Bug / 格式兼容问题：开 [Issue](https://github.com/hualazimo7/MSU1Converter/issues)，
+- 🐛 Bug / 格式兼容问题：开 [Issue](https://github.com/hualazimo7/RetroMusicLab/issues)，
   附上格式名、文件大小、`logs/startup.log` 相关片段（**不要附 ROM 本体**）。
 - ➕ 新增机种：在 `chip_formats.py` 注册，补一条解码路径，加门禁，再更新本 README 的格式表。
 - ✅ 提交前请至少跑 `vendor/test_web_ui.py`，并确保没有把 BIOS、ROM、音频成品提交进仓库。

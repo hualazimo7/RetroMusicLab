@@ -3801,8 +3801,8 @@ def t_viz_panel():
     # 升到 6.0 就假红一次；改成形状 + 一致性断言，以后发版不用动这里。
     _code, _d = _jget("/api/diag")
     _ver = str(_d.get("version") or "")
-    _mark(bool(re.match(r"^\d+\.\d+\.\d+$", _ver)),
-          "/api/diag 版本是 x.y.z 形式（面板没被回退掉）", _ver)
+    _mark(bool(re.match(r"^\d+\.\d+(?:\.\d+)?$", _ver)),
+          "/api/diag 版本是 x.y[.z] 形式（面板没被回退掉）", _ver)
     _mark(_ver == server.APP_VERSION,
           "/api/diag 的版本与 server.APP_VERSION 一致", _ver)
 
@@ -4013,7 +4013,7 @@ def t_flac_out():
     _idx = open(os.path.join(ROOT, "web_ui", "index.html"),
                 encoding="utf-8").read()
     _m_ver = re.search(r'class="brand-ver">([^<]+)<', _idx)
-    _m_ttl = re.search(r"<title>[^<]*?(\d+\.\d+\.\d+)</title>", _idx)
+    _m_ttl = re.search(r"<title>[^<]*?(\d+\.\d+(?:\.\d+)?)</title>", _idx)
     _mark(bool(_m_ver) and _m_ver.group(1).strip() == _exp_ver,
           "index.html .brand-ver = APP_VERSION",
           _m_ver.group(1).strip() if _m_ver else "没找到徽标")
@@ -7367,9 +7367,9 @@ def t_v600():
         import build_web_pyi as _bwp
         ihtml = open(os.path.join(ROOT, "web_ui", "index.html"),
                      encoding="utf-8").read()
-        _mark(_dc._ver_lt(server.APP_VERSION, "6.0.0") is False,
-              "server.APP_VERSION 不早于 6.0.0（%s）" % server.APP_VERSION,
-              server.APP_VERSION)
+        _mark(_dc._ver_lt(_dc.AUDIO_WRITER_VERSION, "5.9.18") is False,
+              "AUDIO_WRITER_VERSION 不早于 5.9.18（%s）" % _dc.AUDIO_WRITER_VERSION,
+              _dc.AUDIO_WRITER_VERSION)
         _mark(_bwp.VER == server.APP_VERSION,
               "build_web_pyi.VER 与 APP_VERSION 一致", _bwp.VER)
         # ⚠ 这里原来写的是 ``"6.0.0" in ihtml`` —— 它能通过纯属侥幸：
@@ -9881,12 +9881,15 @@ def t_v612():
     import cover_art as ca
 
     # ---- ① 版本号五处同步（只有最新分片负责，见 t_v606 的说明）----
-    for path, pat in (("build_web_pyi.py", 'VER = "6.0.12"'),
-                      ("dl_convert.py", 'AUDIO_WRITER_VERSION = "6.0.12"'),
-                      ("web_ui/server.py", 'APP_VERSION = "6.0.12"'),
-                      ("web_ui/index.html", "游戏音乐转换器 6.0.12</title>"),
+    # ⚠ v1.0 起「产品版本」与「编码器能力版本」解耦：
+    #   产品版本 APP_VERSION = 1.0（对外），AUDIO_WRITER_VERSION 仍是 6.0.12
+    #   （BAD_BEFORE 用它判旧 MP3，降到 1.0 会把新文件误判成坏文件）。
+    for path, pat in (("build_web_pyi.py", 'VER = "1.0"'),
+                      ("web_ui/server.py", 'APP_VERSION = "1.0"'),
+                      ("web_ui/index.html", "游戏音乐转换器 1.0</title>"),
                       ("web_ui/index.html",
-                       '<span class="brand-ver">6.0.12</span>')):
+                       '<span class="brand-ver">1.0</span>'),
+                      ("dl_convert.py", 'AUDIO_WRITER_VERSION = "6.0.12"')):
         _mark(pat in _read(*path.split("/")),
               "版本号同步：%s 含 %s" % (path, pat), "")
 

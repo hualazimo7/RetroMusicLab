@@ -11,7 +11,7 @@
   <img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-0078D4?style=flat-square">
   <img alt="Python" src="https://img.shields.io/badge/python-3.14-3776AB?style=flat-square">
-  <a href="https://github.com/hualazimo7/MSU1Converter/releases/latest"><img alt="Release" src="https://img.shields.io/badge/release-v6.0.12-orange?style=flat-square"></a>
+  <a href="https://github.com/hualazimo7/RetroMusicLab/releases/latest"><img alt="Release" src="https://img.shields.io/badge/release-v1.0-orange?style=flat-square"></a>
   <img alt="Formats" src="https://img.shields.io/badge/formats-48%20ext%20%2F%2033%20systems-8957e5?style=flat-square">
 </p>
 
@@ -128,7 +128,7 @@ This project absorbs all of that into one layer: **identify → decode → unify
 | Other audio | `.mp3` `.wav` `.flac` `.ape` | Disc-image branch only |
 | Sample libraries | `.psflib` `.psf2lib` `.qsflib` `.usflib` `.2sflib` `.ssflib` `.dsflib` | Companion files only |
 
-The full list and per-format notes live in the [user guide](docs/使用说明-v6.0.12.md)
+The full list and per-format notes live in the [user guide](docs/使用说明-v1.0.md)
 (Chinese); the single source of truth in code is `msu1-to-cd/chip_formats.py`.
 
 ## 🖥️ UI and workflow
@@ -165,11 +165,11 @@ touched twice at once.
 
 ### Use a release build (recommended)
 
-1. Download `MSU1Converter-v6.0.12-web-win64.zip` (~68 MB) from
-   [Releases](https://github.com/hualazimo7/MSU1Converter/releases/latest).
+1. Download `RetroMusicLab-v1.0-win64.zip` (~68 MB) from
+   [Releases](https://github.com/hualazimo7/RetroMusicLab/releases/latest).
 2. Extract into a directory **you can write to**, e.g. `D:\RetroMusic\`.
    ⚠️ Avoid `C:\Program Files\` (no write access for logs/config) and `%TEMP%`.
-3. Double-click `MSU1Converter-web.exe`. Cold start is 2–3 s on NVMe; on a spinning disk or
+3. Double-click `RetroMusicLab.exe`. Cold start is 2–3 s on NVMe; on a spinning disk or
    with real-time AV scanning it can take 20–60 s with no window and no log — **wait 30 s**.
 4. If it never opens, read `logs\startup.log` next to the exe; the last line tells you where
    it stopped.
@@ -180,7 +180,7 @@ touched twice at once.
 
 ### Use the standalone exe
 
-You can also grab just `MSU1Converter-web.exe` and double-click it. vgmstream — required for
+You can also grab just `RetroMusicLab.exe` and double-click it. vgmstream — required for
 `.wem` / `.fsb` — is embedded, so **no extra DLLs are needed**.
 
 ## 🛠️ Run from source
@@ -209,7 +209,7 @@ cd msu1-to-cd
 python build_web_pyi.py
 ```
 
-The artifact is `build/MSU1Converter-web-pyi/MSU1Converter-web.exe`.
+The artifact is `build/RetroMusicLab-pyi/RetroMusicLab.exe`.
 ⚠️ The script does **not** copy it to `dist/` — do that manually. Close any running exe
 before building, otherwise PyInstaller fails during `assemble` because the file is locked.
 
@@ -273,7 +273,7 @@ There is no CI; instead there is a reproducible set of local gates:
 
 ```bat
 python vendor/test_web_ui.py
-python vendor/check_web_exe.py --exe ..\deliverables\v6.0.12-web\MSU1Converter-web.exe
+python vendor/check_web_exe.py --exe ..\deliverables\v1.0-web\RetroMusicLab.exe
 ```
 
 Lessons baked into the process:
@@ -295,7 +295,7 @@ Lessons baked into the process:
   Dropping a folder opens a native picker so you can select it manually; using
   “Add folder” is faster.
 - 🖼️ **No cover is better than a wrong cover**: when the catalog only has a sequel, the
-  number check rejects it (since v6.0.12).
+  number check rejects it (since v1.0).
 - 💿 **Disc images are audio-only**: CD-DA and XA-ADPCM inside data tracks; no video or
   data extraction.
 - 🗓️ **The index is a static snapshot**: `index/*.json.gz` was built on 2026-10-18; refresh it
@@ -308,7 +308,7 @@ Lessons baked into the process:
 ## ❓ FAQ
 
 **Double-click does nothing?**
-Check `logs\startup.log`. If it doesn't exist, look for a `MSU1Converter-web` process: if
+Check `logs\startup.log`. If it doesn't exist, look for a `RetroMusicLab` process: if
 present, it is still unpacking or being scanned by AV; if absent, it was blocked — add the
 exe to your AV allowlist.
 
@@ -327,7 +327,7 @@ grouped by platform and game.
 
 ## 🤝 Contributing
 
-- 🐛 Bugs and format issues: open an [issue](https://github.com/hualazimo7/MSU1Converter/issues)
+- 🐛 Bugs and format issues: open an [issue](https://github.com/hualazimo7/RetroMusicLab/issues)
   with the format name, file size, and the relevant part of `logs/startup.log`
   (**do not attach ROMs**).
 - ➕ New systems: register it in `chip_formats.py`, add a decode path, add gates, and update

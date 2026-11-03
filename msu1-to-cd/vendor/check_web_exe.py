@@ -41,6 +41,7 @@ tmpdir.init(sweep_old=False)
 #: ``build/MSU1Converter-web`` 是 ``build_web.py``（Nuitka）的旧线，只作兜底 ——
 #: 之前 DEFAULT_EXE 只写了 Nuitka 那条，正式线打完包直接跑门禁会报「找不到 exe」。
 _EXE_CANDIDATES = (
+    os.path.join(ROOT, "build", "RetroMusicLab-pyi", "RetroMusicLab.exe"),
     os.path.join(ROOT, "build", "MSU1Converter-web-pyi", "MSU1Converter-web.exe"),
     os.path.join(ROOT, "build", "MSU1Converter-web", "MSU1Converter-web.exe"),
     os.path.join(ROOT, "dist", "MSU1Converter-web.exe"),

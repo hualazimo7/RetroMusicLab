@@ -31,7 +31,7 @@
     C:/Python314/python.exe build_web_pyi.py
     C:/Python314/python.exe build_web_pyi.py --dry
 
-产物：``build/MSU1Converter-web-pyi/MSU1Converter-web-pyi.exe``
+产物：``build/RetroMusicLab-pyi/RetroMusicLab.exe``
 """
 
 import os
@@ -39,10 +39,10 @@ import shutil
 import sys
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-OUT_DIR = os.path.join(ROOT, "build", "MSU1Converter-web-pyi")
+OUT_DIR = os.path.join(ROOT, "build", "RetroMusicLab-pyi")
 WORK_DIR = os.path.join(OUT_DIR, "work")
-NAME = "MSU1Converter-web"
-VER = "6.0.12"
+NAME = "RetroMusicLab"
+VER = "1.0"
 
 #: 与 build_web.py 保持一致 —— 两份清单必须同步改，否则「Nuitka 版好、
 #: PyInstaller 版 404」这种问题极难查（同一份前端资源在两套产物里落点不同）。
