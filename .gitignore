@@ -32,9 +32,6 @@ deliverables/
 msu1-to-cd/bios/
 **/scph*.bin
 
-# ---- 另一个独立工具（不在本仓库范围）----
-wsc_flasher_build/
-
 # ---- 本机配置 / 记忆 / 临时 ----
 .workbuddy/
 *.tmp
