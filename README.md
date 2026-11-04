@@ -3,6 +3,10 @@
 > 把 30 多个机种的游戏音乐，统一转成能听的音频、能烧的 CD。
 
 <p align="center">
+  <a href="https://ifdian.net/a/hualazimo7"><img alt="赞助 · 爱发电" src="https://img.shields.io/badge/%E8%B5%9E%E5%8A%A9-%E7%88%B1%E5%8F%91%E7%94%B5-946ce6?style=for-the-badge&logo=afdian&logoColor=white"></a>
+</p>
+
+<p align="center">
   <a href="README.md"><img alt="中文" src="https://img.shields.io/badge/%E4%B8%AD%E6%96%87-%E5%BD%93%E5%89%8D-2ea44f?style=for-the-badge"></a>
   <a href="README.en.md"><img alt="English" src="https://img.shields.io/badge/ENGLISH-SWITCH-6e7781?style=for-the-badge"></a>
 </p>

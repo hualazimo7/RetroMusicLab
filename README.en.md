@@ -3,6 +3,10 @@
 > Turn game music from 30+ retro consoles into playable audio — or a burnable CD.
 
 <p align="center">
+  <a href="https://ifdian.net/a/hualazimo7"><img alt="Sponsor · Afdian" src="https://img.shields.io/badge/SPONSOR-AFDIAN-946ce6?style=for-the-badge&logo=afdian&logoColor=white"></a>
+</p>
+
+<p align="center">
   <a href="README.md"><img alt="中文" src="https://img.shields.io/badge/%E4%B8%AD%E6%96%87-SWITCH-6e7781?style=for-the-badge"></a>
   <a href="README.en.md"><img alt="English" src="https://img.shields.io/badge/ENGLISH-CURRENT-2ea44f?style=for-the-badge"></a>
 </p>
