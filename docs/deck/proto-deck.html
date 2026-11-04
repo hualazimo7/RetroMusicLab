@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>RetroMusicLab · 磁带机面板原型</title>
+<style>
+  :root{
+    --wood-1:#7a4e33; --wood-2:#4a2c1b; --wood-3:#2b180e;
+    --panel-1:#e3d1b0; --panel-2:#cbb391; --panel-3:#b39a76; --panel-4:#9c8362;
+    --ink:#3a2c1c; --ink-2:#6b563c;
+    --dark-1:#33312c; --dark-2:#23211d; --dark-3:#15130f;
+    --led-amber:#ffb347; --led-red:#ff4a35; --led-green:#7de08a;
+    --paper:#efe6d0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:radial-gradient(120% 90% at 50% 0%, #3b2a20 0%, #1b120c 60%, #0d0906 100%);
+    display:flex;align-items:center;justify-content:center;
+    font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    user-select:none;
+  }
+  .stage{width:1040px;transform-origin:center center}
+
+  /* ═══════════ 木质外壳 ═══════════ */
+  .deck{
+    position:relative;
+    padding:13px 25px;
+    border-radius:9px;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.028) 0 1px, transparent 1px 4px),
+      linear-gradient(180deg,#8a5a3c 0%,#5d3823 22%,#3d2415 70%,#24150c 100%);
+    box-shadow:
+      0 34px 60px -18px rgba(0,0,0,.85),
+      0 4px 0 #1a0f08,
+      inset 0 1px 0 rgba(255,215,170,.30),
+      inset 0 -2px 0 rgba(0,0,0,.55);
+  }
+  /* 左右木柱的立体感 */
+  .deck::before,.deck::after{
+    content:"";position:absolute;top:8px;bottom:8px;width:22px;border-radius:9px;
+    background:linear-gradient(90deg,rgba(255,214,170,.16),rgba(0,0,0,.42));
+    pointer-events:none;
+  }
+  .deck::before{left:1px}
+  .deck::after{right:1px;transform:scaleX(-1)}
+
+  /* ═══════════ 铝面板 ═══════════ */
+  .fascia{
+    position:relative;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 340px;
+    grid-template-rows:auto auto auto auto;
+    gap:13px 44px;
+    padding:26px 52px 16px;
+    border-radius:4px;
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.045) 0 1px, transparent 1px 3px),
+      linear-gradient(102deg,#e8d7b8 0%,#d3bd99 16%,#e6d4b3 34%,#c9b08c 52%,#e2cfae 70%,#c6ac88 86%,#dcc8a6 100%);
+    box-shadow:
+      inset 0 0 0 1px rgba(90,64,38,.35),
+      inset 0 2px 6px rgba(255,250,235,.55),
+      inset 0 -3px 10px rgba(90,64,38,.35),
+      0 2px 6px rgba(0,0,0,.5);
+  }
+  /* 面板四角螺丝 */
+  .fascia::before,.fascia::after{
+    content:"";position:absolute;width:7px;height:7px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#fff8e8,#9a8259 60%,#5d4a2c);
+    box-shadow:inset 0 0 0 .5px rgba(0,0,0,.4),0 1px 1px rgba(255,255,255,.4);
+  }
+  .fascia::before{left:9px;top:9px}
+  .fascia::after{right:9px;top:9px}
+
+  /* ═══════════ 磁带仓 ═══════════ */
+  .bay{
+    grid-area:1/1/2/2;
+    position:relative;
+    padding:9px 13px 0;
+    border-radius:9px;
+    background:linear-gradient(180deg,#3a3833 0%,#2a2723 40%,#1d1b17 100%);
+    box-shadow:
+      inset 0 2px 10px rgba(0,0,0,.85),
+      inset 0 -1px 0 rgba(255,255,255,.10),
+      0 1px 0 rgba(255,246,225,.55);
+  }
+  .bay-strip{
+    display:flex;align-items:center;justify-content:center;gap:7px;
+    height:15px;font-size:8px;letter-spacing:2.4px;
+    color:#8e8878;text-shadow:0 1px 0 rgba(0,0,0,.8);
+  }
+  .bay-strip i{
+    width:0;height:0;border:3.5px solid transparent;display:block;
+  }
+  .bay-strip i.l{border-right-color:#6d6759}
+  .bay-strip i.r{border-left-color:#6d6759}
+
+  /* 卡带本体 */
+  .cassette{
+    position:relative;height:250px;margin-bottom:8px;border-radius:8px;
+    background:
+      linear-gradient(168deg,#c2bfae 0%,#a3a091 26%,#82806f 62%,#5d5b4e 100%);
+    box-shadow:
+      inset 0 2px 0 rgba(255,255,255,.42),
+      inset 0 -3px 10px rgba(0,0,0,.45),
+      inset 2px 0 6px rgba(0,0,0,.18),
+      0 4px 12px rgba(0,0,0,.6);
+    border:1px solid rgba(255,246,225,.30);
+  }
+  /* 塑料外壳的高光斜条 */
+  .cassette::after{
+    content:"";position:absolute;inset:0;border-radius:7px;pointer-events:none;
+    background:linear-gradient(118deg,rgba(255,255,255,.20) 0%,rgba(255,255,255,0) 32%,rgba(255,255,255,0) 68%,rgba(255,255,255,.09) 100%);
+  }
+
+  /* 标签纸 */
+  .label{
+    position:absolute;left:7%;right:7%;top:5%;height:36%;
+    border-radius:2px;
+    background:
+      repeating-linear-gradient(0deg,rgba(120,95,60,.055) 0 1px,transparent 1px 3px),
+      linear-gradient(180deg,#f4ecd8,#e4d9bd);
+    box-shadow:0 1px 2px rgba(0,0,0,.5),inset 0 0 0 1px rgba(120,95,60,.25);
+    padding:6px 10px;color:var(--ink);
+  }
+  .lb-brand{
+    position:absolute;left:11px;top:3px;
+    font-family:Georgia,"Times New Roman",serif;font-style:italic;font-weight:700;
+    font-size:17px;letter-spacing:-.4px;color:#2e2317;line-height:1.1;
+  }
+  .lb-sep{position:absolute;left:11px;right:11px;top:22px;border-top:1px solid rgba(120,95,60,.38)}
+  .lb-title{
+    position:absolute;left:11px;right:11px;top:26px;height:19px;overflow:hidden;
+    font-family:Georgia,"Times New Roman",serif;font-style:italic;
+    font-size:12px;line-height:19px;color:#241b10;
+    white-space:nowrap;text-overflow:ellipsis;
+  }
+  .lb-side{position:absolute;left:11px;top:47px;font-size:6.2px;letter-spacing:1.8px;color:#6a5638}
+  .lb-side b{display:block;font-size:13px;letter-spacing:0;margin-top:0;line-height:1;color:#2e2317}
+  .lb-len{position:absolute;right:11px;top:45px;font-size:20px;font-weight:700;color:#332818;letter-spacing:-1px;line-height:1}
+  .lb-type{position:absolute;left:11px;bottom:3px;font-size:6.2px;letter-spacing:1.3px;color:#8a7550}
+
+  /* 观察窗（深色）与卷盘 */
+  .window{
+    position:absolute;left:11%;right:11%;top:44%;bottom:18%;
+    border-radius:5px;
+    background:linear-gradient(180deg,#3a3730 0%,#242118 42%,#1b1913 100%);
+    box-shadow:inset 0 3px 14px rgba(0,0,0,.85),inset 0 -2px 6px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.14);
+    overflow:hidden;
+  }
+  .reel{position:absolute;top:50%;width:92px;height:92px;margin-top:-46px}
+  .reel.l{left:calc(50% - 128px)}
+  .reel.r{left:calc(50% + 32px)}
+  .pack{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    border-radius:50%;
+    background:
+      radial-gradient(circle at 50% 50%,
+        transparent 0 34%,
+        #090705 34% 36%,
+        #4a3928 36% 52%,
+        #3a2c1d 52% 70%,
+        #2b2014 70% 84%,
+        #d5c9b0 84% 87%,
+        #9a8f78 87% 100%),
+      repeating-radial-gradient(circle at 50% 50%,
+        rgba(255,255,255,.055) 0 1px, rgba(0,0,0,.06) 1px 2px);
+    box-shadow:inset 0 0 10px rgba(0,0,0,.95),0 1px 3px rgba(0,0,0,.7);
+  }
+  .hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:50px;height:50px}
+  .hub svg{width:100%;height:100%;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))}
+
+  .guide{position:absolute;bottom:4px;width:9px;height:9px;border-radius:50%;
+    background:radial-gradient(circle at 38% 32%,#d8cdb4,#6d6350 65%,#2c2620);
+    box-shadow:0 0 3px rgba(0,0,0,.9)}
+  .guide.a{left:14%} .guide.b{right:14%}
+
+  .scr{position:absolute;width:6px;height:6px;border-radius:50%;
+    background:radial-gradient(circle at 36% 30%,#fffaea,#a09a86 55%,#4a453a);
+    box-shadow:inset 0 0 0 .5px rgba(0,0,0,.35),0 1px 1px rgba(0,0,0,.5)}
+  .scr.a{left:6px;top:6px} .scr.b{right:6px;top:6px}
+  .scr.c{left:6px;bottom:6px} .scr.d{right:6px;bottom:6px}
+
+  .foot{position:absolute;left:0;right:0;bottom:0;height:18%;pointer-events:none}
+  .foot .trap{
+    position:absolute;left:50%;transform:translateX(-50%);bottom:0;
+    width:34%;height:62%;
+    background:linear-gradient(180deg,rgba(0,0,0,.34),rgba(0,0,0,.14));
+    border-radius:3px 3px 0 0;
+    box-shadow:inset 0 2px 4px rgba(0,0,0,.45);
+  }
+  .foot .h1,.foot .h2{
+    position:absolute;bottom:34%;width:9px;height:9px;border-radius:50%;
+    background:radial-gradient(circle at 40% 34%,#2b2620,#0b0907 70%);
+    box-shadow:0 0 3px rgba(0,0,0,.9),inset 0 1px 1px rgba(255,255,255,.18);
+  }
+  .foot .h1{left:26%} .foot .h2{right:26%}
+  .cdummy{display:none}
+
+  .shell-ridge{
+    position:absolute;left:6%;right:6%;bottom:2.5%;height:2px;border-radius:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.22) 20%,rgba(255,255,255,.10) 55%,transparent);
+  }
+
+  /* 计数器条 */
+  .counter{
+    display:flex;align-items:center;gap:8px;height:26px;margin:0 2px 0;
+    border-top:1px solid rgba(255,255,255,.07);padding-left:2px;
+  }
+  .leds{display:flex;gap:5px;align-items:center}
+  .leds i{width:5px;height:5px;border-radius:50%;background:#2a2620;
+    box-shadow:inset 0 0 2px rgba(0,0,0,.9)}
+  .leds i.on{background:var(--led-green);box-shadow:0 0 7px rgba(125,224,138,.9),inset 0 0 1px #fff}
+  .leds i.w{background:var(--led-amber);box-shadow:0 0 7px rgba(255,179,71,.85),inset 0 0 1px #fff}
+  .cclabel{font-size:6.5px;letter-spacing:1.6px;color:#6f6a5c;margin-left:4px}
+  .lcd{
+    margin-left:auto;padding:1px 7px;border-radius:2px;
+    font-family:Consolas,monospace;font-size:10px;letter-spacing:1px;color:#9fe8b0;
+    background:#0d1410;box-shadow:inset 0 0 6px rgba(0,0,0,.95),0 0 0 1px rgba(255,255,255,.07);
+    text-shadow:0 0 6px rgba(120,240,150,.5);
+  }
+
+  /* ═══════════ 走带按键 ═══════════ */
+  .keys{grid-area:2/1/3/2;display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .key{
+    height:36px;border:1px solid #0a0806;border-radius:3.5px;cursor:pointer;
+    background:linear-gradient(180deg,#413a30,#241f19 45%,#141110);
+    color:#b6a68c;font-size:7.6px;letter-spacing:1.1px;font-family:inherit;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.16),inset 0 -2px 3px rgba(0,0,0,.6),0 2px 3px rgba(0,0,0,.55);
+    transition:transform .06s,box-shadow .12s,color .12s;
+  }
+  .key svg{width:11px;height:11px;fill:currentColor;opacity:.85}
+  .key:hover{color:#e2d3b6}
+  .key:active,.key.on{
+    transform:translateY(1px);color:#ffcf8a;
+    box-shadow:inset 0 2px 6px rgba(0,0,0,.85),0 1px 1px rgba(0,0,0,.5);
+  }
+  .key.on{background:linear-gradient(180deg,#241f19,#3a3228)}
+  .wkeys{grid-area:3/1/4/2;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .wkey{
+    height:32px;border:1px solid #0a0806;border-radius:3.5px;cursor:pointer;
+    background:linear-gradient(180deg,#3b342b,#221e18 50%,#131110);
+    color:#c2b296;font-size:11.5px;letter-spacing:1.2px;font-family:inherit;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 2px 3px rgba(0,0,0,.5);
+  }
+  .wkey:hover{color:#f0e0c0}
+
+  /* ═══════════ 右侧 VU 表 ═══════════ */
+  .right{grid-area:1/2/4/3;display:flex;flex-direction:column;justify-content:space-between;gap:10px;padding-top:2px}
+  .meters{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .vu{
+    position:relative;border-radius:4px;padding:4px;
+    background:linear-gradient(180deg,#3a352c,#231f19);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 2px 5px rgba(0,0,0,.6);
+  }
+  .vu-face{
+    position:relative;border-radius:2px;overflow:hidden;height:118px;
+    background:
+      radial-gradient(120% 100% at 50% 118%,#fff4d0 0%,#f6e4b4 40%,#e8d29b 72%,#cdb47c 100%);
+    box-shadow:inset 0 0 12px rgba(150,110,40,.5);
+  }
+  /* 背光 */
+  .vu-face::before{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(80% 70% at 50% 95%,rgba(255,196,90,.55),transparent 70%);
+    mix-blend-mode:screen;
+  }
+  /* 玻璃反光 */
+  .vu-face::after{
+    content:"";position:absolute;inset:0;
+    background:linear-gradient(122deg,rgba(255,255,255,.42) 0%,rgba(255,255,255,0) 38%,rgba(255,255,255,0) 62%,rgba(255,255,255,.16) 100%);
+  }
+  .vu svg{position:absolute;left:0;top:0;width:100%;height:100%}
+  .vu-ch{position:absolute;right:6px;bottom:3px;font-size:7px;letter-spacing:1px;color:#7a6338;z-index:2}
+  .vu-vu{position:absolute;left:6px;bottom:3px;font-size:7px;font-weight:700;color:#5a4a28;z-index:2}
+
+  /* ═══════════ 频谱 ═══════════ */
+  .spec{
+    border-radius:4px;padding:6px 7px 3px;
+    background:linear-gradient(180deg,#2b2822,#171510);
+    box-shadow:inset 0 2px 8px rgba(0,0,0,.9),inset 0 -1px 0 rgba(255,255,255,.08),0 1px 0 rgba(255,246,225,.4);
+  }
+  .spec-cols{display:grid;grid-template-columns:repeat(15,1fr);gap:2.5px;height:70px;align-items:end}
+  .col{display:flex;flex-direction:column;gap:1.7px;justify-content:flex-end;height:100%}
+  .seg{height:3.3px;flex:0 0 3.3px;border-radius:.8px;background:#241f18;transition:background .06s}
+  .seg.on{background:var(--led-green);box-shadow:0 0 4px rgba(125,224,138,.55)}
+  .seg.on.mid{background:#ffd166;box-shadow:0 0 4px rgba(255,209,102,.6)}
+  .seg.on.top{background:var(--led-red);box-shadow:0 0 5px rgba(255,74,53,.7)}
+  .spec-scale{
+    display:flex;justify-content:space-between;margin-top:4px;
+    font-size:5.8px;letter-spacing:.2px;color:#7d7565;padding:0 1px;
+  }
+
+  /* ═══════════ 旋钮 ═══════════ */
+  .knobs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding-top:3px}
+  .knob{display:flex;flex-direction:column;align-items:center;gap:3px}
+  .kbody{
+    position:relative;width:56px;height:56px;border-radius:50%;cursor:grab;
+    background:
+      radial-gradient(circle at 38% 30%,#f4ecd8 0%,#cfc3a8 26%,#9c9078 55%,#5d5344 82%,#332c23 100%);
+    box-shadow:
+      0 5px 9px rgba(0,0,0,.65),
+      0 1px 0 rgba(255,250,235,.5),
+      inset 0 -3px 6px rgba(0,0,0,.45),
+      inset 0 2px 3px rgba(255,255,255,.5);
+  }
+  .kbody::before{
+    content:"";position:absolute;inset:5px;border-radius:50%;
+    background:conic-gradient(from 0deg,rgba(255,255,255,.28),rgba(0,0,0,.18) 25%,rgba(255,255,255,.20) 50%,rgba(0,0,0,.18) 75%,rgba(255,255,255,.28));
+    opacity:.55;
+  }
+  .kbody::after{
+    content:"";position:absolute;inset:0;border-radius:50%;
+    background:radial-gradient(circle at 50% 50%,transparent 62%,rgba(0,0,0,.28) 100%);
+  }
+  .kmark{
+    position:absolute;left:50%;top:50%;width:2px;height:20px;margin-left:-1px;
+    background:linear-gradient(180deg,#2a2118,#0d0a07);border-radius:1px;
+    transform-origin:50% 100%;transform:translateY(-100%) rotate(0deg);
+    box-shadow:0 0 1px rgba(255,255,255,.5);
+  }
+  .klabel{font-size:6.6px;letter-spacing:1.5px;color:#5c4a31}
+  .kval{font-size:7.4px;color:#6e5836;font-variant-numeric:tabular-nums}
+
+  /* ═══════════ 底部收音机条 ═══════════ */
+  .bottom{
+    grid-area:4/1/5/3;
+    display:flex;align-items:center;gap:14px;margin-top:2px;
+    padding:7px 10px;border-radius:4px;
+    background:linear-gradient(180deg,#ddc9a6,#c2a97f);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.65),inset 0 -2px 5px rgba(120,92,55,.4);
+  }
+  .power{
+    width:30px;height:30px;border-radius:50%;border:1px solid #8a7350;cursor:pointer;
+    background:radial-gradient(circle at 36% 30%,#f6efdd,#c3b090 48%,#8d7a58 78%,#5e4e35);
+    box-shadow:0 2px 4px rgba(90,64,38,.5),inset 0 1px 2px rgba(255,255,255,.7);
+    position:relative;display:flex;align-items:center;justify-content:center;
+  }
+  .power i{width:6px;height:6px;border-radius:50%;background:#5a1a10;
+    box-shadow:inset 0 0 2px #000;transition:.2s}
+  .power.on i{background:var(--led-red);box-shadow:0 0 9px rgba(255,74,53,.9),0 0 2px #fff}
+  .pwr-label{font-size:6.4px;letter-spacing:1.6px;color:#5d4b31;margin-left:-8px}
+
+  .tuner{
+    position:relative;flex:1;height:44px;border-radius:3px;
+    background:linear-gradient(180deg,#241f18,#100d09 55%,#1c1811);
+    box-shadow:inset 0 2px 8px rgba(0,0,0,.95),0 1px 0 rgba(255,250,235,.5);
+    overflow:hidden;
+  }
+  .tuner svg{position:absolute;inset:0;width:100%;height:100%}
+  .tfreq{
+    position:absolute;left:7px;bottom:3px;font-family:Consolas,monospace;
+    font-size:9px;color:#ffd28a;text-shadow:0 0 6px rgba(255,180,90,.7);letter-spacing:1px;
+  }
+  .tneedle{
+    position:absolute;top:4px;bottom:4px;width:1.6px;left:42%;
+    background:linear-gradient(180deg,#ff5a3c,#a8261a);
+    box-shadow:0 0 7px rgba(255,90,60,.9);
+    transition:left .25s ease;
+  }
+  .tneedle::after{
+    content:"";position:absolute;left:50%;top:-2px;transform:translateX(-50%);
+    border:3px solid transparent;border-top-color:#ff5a3c;
+  }
+  .radio-label{
+    font-size:8px;letter-spacing:2.4px;color:#a8341f;font-weight:600;
+  }
+  .vslider{
+    width:9px;height:32px;border-radius:2px;position:relative;cursor:pointer;
+    background:linear-gradient(90deg,#a8926d,#d8c5a2 40%,#a8926d);
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.5);
+  }
+  .vslider i{
+    position:absolute;left:-2px;right:-2px;height:11px;border-radius:1.5px;top:30%;
+    background:linear-gradient(180deg,#f3ead6,#b9a381 50%,#8a7551);
+    box-shadow:0 1px 2px rgba(0,0,0,.55);
+  }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="deck">
+    <div class="fascia">
+
+      <!-- 磁带仓 -->
+      <div class="bay">
+        <div class="bay-strip"><i class="l"></i>AUTO REVERSE<i class="r"></i></div>
+        <div class="cassette">
+          <div class="label">
+            <div class="lb-brand">RetroMusicLab</div>
+            <div class="lb-sep"></div>
+            <div class="lb-title">10-Yard Fight — Title Theme</div>
+            <div class="lb-side">SIDE<b>A</b></div>
+            <div class="lb-len">01/12</div>
+            <div class="lb-type">NSF · 01:23 · 44.1K · STEREO · TYPE I</div>
+          </div>
+
+          <div class="window">
+            <div class="reel l">
+              <div class="pack" id="packL" style="width:92px;height:92px"></div>
+              <div class="hub" id="hubL">
+                <svg viewBox="0 0 44 44">
+                  <circle cx="22" cy="22" r="19" fill="none" stroke="#b9ad93" stroke-width="2.5"/>
+                  <circle cx="22" cy="22" r="19" fill="none" stroke="rgba(0,0,0,.45)" stroke-width=".8"/>
+                  <g fill="#d8cdb2">
+                    <rect x="19.4" y="3.6" width="5.2" height="8.4" rx="1"/>
+                    <rect x="19.4" y="32" width="5.2" height="8.4" rx="1"/>
+                    <rect x="3.6" y="19.4" width="8.4" height="5.2" rx="1"/>
+                    <rect x="32" y="19.4" width="8.4" height="5.2" rx="1"/>
+                  </g>
+                  <circle cx="22" cy="22" r="6.6" fill="#221c15" stroke="#8e8268" stroke-width="1.4"/>
+                </svg>
+              </div>
+            </div>
+            <div class="reel r">
+              <div class="pack" id="packR" style="width:92px;height:92px"></div>
+              <div class="hub" id="hubR">
+                <svg viewBox="0 0 44 44">
+                  <circle cx="22" cy="22" r="19" fill="none" stroke="#b9ad93" stroke-width="2.5"/>
+                  <circle cx="22" cy="22" r="19" fill="none" stroke="rgba(0,0,0,.45)" stroke-width=".8"/>
+                  <g fill="#d8cdb2">
+                    <rect x="19.4" y="3.6" width="5.2" height="8.4" rx="1"/>
+                    <rect x="19.4" y="32" width="5.2" height="8.4" rx="1"/>
+                    <rect x="3.6" y="19.4" width="8.4" height="5.2" rx="1"/>
+                    <rect x="32" y="19.4" width="8.4" height="5.2" rx="1"/>
+                  </g>
+                  <circle cx="22" cy="22" r="6.6" fill="#221c15" stroke="#8e8268" stroke-width="1.4"/>
+                </svg>
+              </div>
+            </div>
+            <div class="guide a"></div>
+            <div class="guide b"></div>
+            <div class="shell-ridge"></div>
+          </div>
+          <div class="scr a"></div><div class="scr b"></div>
+          <div class="scr c"></div><div class="scr d"></div>
+          <div class="foot"><i class="h1"></i><i class="h2"></i><div class="trap"></div></div>
+          <div class="cdummy">
+          </div>
+        </div>
+
+        <div class="counter">
+          <div class="leds"><i class="on"></i><i class="w"></i><i></i></div>
+          <div class="cclabel">TAPE COUNTER</div>
+          <div class="lcd" id="lcd">00:12</div>
+        </div>
+      </div>
+
+      <!-- 走带按键 -->
+      <div class="keys">
+        <button class="key" data-k="rec"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/></svg>REC</button>
+        <button class="key on" data-k="play" id="kPlay"><svg viewBox="0 0 24 24"><path d="M7 4.5v15L20 12Z"/></svg>PLAY</button>
+        <button class="key" data-k="rew"><svg viewBox="0 0 24 24"><path d="M11 12 21 5v14Zm-8 0 9-7v14Z"/></svg>REW</button>
+        <button class="key" data-k="ff"><svg viewBox="0 0 24 24"><path d="M13 12 3 19V5Zm8 0-9 7V5Z"/></svg>FF</button>
+        <button class="key" data-k="stop"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="1"/></svg>STOP EJECT</button>
+        <button class="key" data-k="pause"><svg viewBox="0 0 24 24"><rect x="6" y="5" width="4.4" height="14"/><rect x="13.6" y="5" width="4.4" height="14"/></svg>PAUSE</button>
+        <button class="key" data-k="nr"><svg viewBox="0 0 24 24"><path d="M3 14.5c2.2 0 2.6-5 4.6-5s2.4 8 4.4 8 2.4-9 4.4-9 2.4 6 4.6 6"/></svg>NR</button>
+      </div>
+
+      <div class="wkeys">
+        <button class="wkey">A / B 面</button>
+        <button class="wkey">歌词</button>
+        <button class="wkey">全球电台</button>
+      </div>
+
+      <!-- 右侧仪表区 -->
+      <div class="right">
+        <div class="meters">
+          <div class="vu">
+            <div class="vu-face">
+              <svg viewBox="0 0 140 118" id="vuL">
+                <path d="M18 90 A54 54 0 0 1 122 90" fill="none" stroke="#3a2c12" stroke-width="1.5"/>
+                <g stroke="#33260f" stroke-width="1.05">
+                  <line x1="70" y1="50" x2="70" y2="57" transform="rotate(-75 70 104)"/>
+                  <line x1="70" y1="50" x2="70" y2="56" transform="rotate(-60 70 104)"/>
+                  <line x1="70" y1="50" x2="70" y2="57" transform="rotate(-45 70 104)"/>
+                  <line x1="70" y1="50" x2="70" y2="56" transform="rotate(-30 70 104)"/>
+                  <line x1="70" y1="50" x2="70" y2="57" transform="rotate(-15 70 104)"/>
+                  <line x1="70" y1="50" x2="70" y2="56" transform="rotate(0 70 104)"/>
+                  <line x1="70" y1="50" x2="70" y2="57" transform="rotate(15 70 104)"/>
+                  <line x1="70" y1="50" x2="70" y2="56" transform="rotate(30 70 104)"/>
+                  <line x1="70" y1="50" x2="70" y2="57" transform="rotate(45 70 104)"/>
+                  <line x1="70" y1="50" x2="70" y2="56" transform="rotate(60 70 104)"/>
+                  <line x1="70" y1="50" x2="70" y2="57" transform="rotate(75 70 104)"/>
+                </g>
+                <g fill="#2e2310" font-size="8.4" font-weight="600" font-family="Segoe UI,sans-serif" text-anchor="middle">
+                  <text x="14" y="89">-20</text>
+                  <text x="29" y="63">-10</text>
+                  <text x="55" y="48">-5</text>
+                  <text x="85" y="48">0</text>
+                  <text x="118" y="71">+3</text>
+                </g>
+                <line id="ndL" x1="70" y1="104" x2="70" y2="52" stroke="#a81f14" stroke-width="1.3"
+                      transform="rotate(-40 70 104)"/>
+                <circle cx="70" cy="104" r="7" fill="#2b2418"/>
+                <circle cx="70" cy="104" r="3" fill="#5d513a"/>
+                <rect x="62" y="106" width="16" height="4" rx="1" fill="#8d7a52" opacity=".5"/>
+              </svg>
+              <span class="vu-vu">VU</span><span class="vu-ch">L</span>
+            </div>
+          </div>
+          <div class="vu">
+            <div class="vu-face">
+              <svg viewBox="0 0 140 118" id="vuR">
+                <path d="M18 90 A54 54 0 0 1 122 90" fill="none" stroke="#3a2c12" stroke-width="1.5"/>
+                <g stroke="#33260f" stroke-width="1.05">
+                  <line x1="70" y1="50" x2="70" y2="57" transform="rotate(-75 70 104)"/>
+                  <line x1="70" y1="50" x2="70" y2="56" transform="rotate(-60 70 104)"/>
+                  <line x1="70" y1="50" x2="70" y2="57" transform="rotate(-45 70 104)"/>
+                  <line x1="70" y1="50" x2="70" y2="56" transform="rotate(-30 70 104)"/>
+                  <line x1="70" y1="50" x2="70" y2="57" transform="rotate(-15 70 104)"/>
+                  <line x1="70" y1="50" x2="70" y2="56" transform="rotate(0 70 104)"/>
+                  <line x1="70" y1="50" x2="70" y2="57" transform="rotate(15 70 104)"/>
+                  <line x1="70" y1="50" x2="70" y2="56" transform="rotate(30 70 104)"/>
+                  <line x1="70" y1="50" x2="70" y2="57" transform="rotate(45 70 104)"/>
+                  <line x1="70" y1="50" x2="70" y2="56" transform="rotate(60 70 104)"/>
+                  <line x1="70" y1="50" x2="70" y2="57" transform="rotate(75 70 104)"/>
+                </g>
+                <g fill="#2e2310" font-size="8.4" font-weight="600" font-family="Segoe UI,sans-serif" text-anchor="middle">
+                  <text x="14" y="89">-20</text>
+                  <text x="29" y="63">-10</text>
+                  <text x="55" y="48">-5</text>
+                  <text x="85" y="48">0</text>
+                  <text x="118" y="71">+3</text>
+                </g>
+                <line id="ndR" x1="70" y1="104" x2="70" y2="52" stroke="#a81f14" stroke-width="1.3"
+                      transform="rotate(-40 70 104)"/>
+                <circle cx="70" cy="104" r="7" fill="#2b2418"/>
+                <circle cx="70" cy="104" r="3" fill="#5d513a"/>
+                <rect x="62" y="106" width="16" height="4" rx="1" fill="#8d7a52" opacity=".5"/>
+              </svg>
+              <span class="vu-vu">VU</span><span class="vu-ch">R</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="spec">
+          <div class="spec-cols" id="spec"></div>
+          <div class="spec-scale">
+            <span>63</span><span>125</span><span>250</span><span>500</span><span>1K</span>
+            <span>2K</span><span>4K</span><span>8K</span><span>12K</span><span>16K</span>
+          </div>
+        </div>
+
+        <div class="knobs">
+          <div class="knob"><div class="kbody" data-k="bass"><div class="kmark" style="transform:translateY(-100%) rotate(-30deg)"></div></div>
+            <span class="klabel">BASS</span><span class="kval" id="vBass">0.0</span></div>
+          <div class="knob"><div class="kbody" data-k="treble"><div class="kmark" style="transform:translateY(-100%) rotate(20deg)"></div></div>
+            <span class="klabel">TREBLE</span><span class="kval" id="vTreb">+0.0</span></div>
+          <div class="knob"><div class="kbody" data-k="vol"><div class="kmark" id="mkVol" style="transform:translateY(-100%) rotate(35deg)"></div></div>
+            <span class="klabel">VOLUME</span><span class="kval" id="vVol">78</span></div>
+          <div class="knob"><div class="kbody" data-k="tune"><div class="kmark" id="mkTune" style="transform:translateY(-100%) rotate(-8deg)"></div></div>
+            <span class="klabel">TUNING</span><span class="kval" id="vTune">98.5</span></div>
+        </div>
+      </div>
+
+      <!-- 底部收音条 -->
+      <div class="bottom">
+        <button class="power on" id="pwr"><i></i></button>
+        <span class="pwr-label">POWER</span>
+
+        <div class="tuner">
+          <svg viewBox="0 0 520 44" preserveAspectRatio="none">
+            <g stroke="#f4e3bd" stroke-width=".7" opacity=".55">
+              <line x1="10" y1="30" x2="10" y2="38"/>
+              <line x1="60" y1="33" x2="60" y2="38"/>
+              <line x1="110" y1="30" x2="110" y2="38"/>
+              <line x1="160" y1="33" x2="160" y2="38"/>
+              <line x1="210" y1="30" x2="210" y2="38"/>
+              <line x1="260" y1="33" x2="260" y2="38"/>
+              <line x1="310" y1="30" x2="310" y2="38"/>
+              <line x1="360" y1="33" x2="360" y2="38"/>
+              <line x1="410" y1="30" x2="410" y2="38"/>
+              <line x1="460" y1="33" x2="460" y2="38"/>
+              <line x1="510" y1="30" x2="510" y2="38"/>
+            </g>
+            <g fill="#f4e3bd" font-size="7" opacity=".62" font-family="Segoe UI,sans-serif" text-anchor="middle">
+              <text x="10" y="24">88</text><text x="110" y="24">92</text>
+              <text x="210" y="24">96</text><text x="310" y="24">100</text>
+              <text x="410" y="24">104</text><text x="510" y="24">108</text>
+            </g>
+            <line x1="0" y1="14" x2="520" y2="14" stroke="#8e7f5f" stroke-width=".6" opacity=".7"/>
+            <g fill="#e8d7b0" font-size="6" opacity=".42" font-family="Segoe UI,sans-serif">
+              <text x="6" y="11">FM</text><text x="22" y="11" opacity=".7">MHz</text>
+              <text x="486" y="11" opacity=".7">STEREO</text>
+            </g>
+          </svg>
+          <div class="tneedle" id="tneedle"></div>
+          <div class="tfreq" id="tfreq">98.50</div>
+        </div>
+
+        <span class="radio-label">RADIO</span>
+        <div class="vslider"><i></i></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ── 频谱柱：15 列 × 12 段 ── */
+  const SPEC = document.getElementById("spec");
+  const NCOL = 15, NSEG = 12;
+  const cols = [];
+  for (let c = 0; c < NCOL; c++) {
+    const col = document.createElement("div");
+    col.className = "col";
+    const segs = [];
+    for (let s = 0; s < NSEG; s++) {
+      const d = document.createElement("div");
+      d.className = "seg" + (s < 2 ? " top" : s < 5 ? " mid" : "");
+      col.appendChild(d);
+      segs.push(d);
+    }
+    SPEC.appendChild(col);
+    cols.push({ segs, last: -1 });
+  }
+
+  /* ── 假信号：多谐波 + 慢包络，形状接近真实频谱 ── */
+  function bandLevel(i, t) {
+    const x = i / (NCOL - 1);                    // 0 低频 → 1 高频
+    const tilt = Math.pow(1 - x, 0.85) * 0.75 + 0.18;   // 低频高、高频低
+    const wob = 0.55 + 0.45 * Math.sin(t * (1.1 + i * 0.37) + i * 1.7);
+    const beat = 0.72 + 0.28 * Math.sin(t * 2.4);
+    const transient = Math.pow(Math.max(0, Math.sin(t * 1.55)), 12) * 0.5;
+    const v = tilt * wob * beat + transient * (1 - x * 0.5);
+    return Math.max(0.02, Math.min(1, v));
+  }
+
+  let playing = true, t = 0, last = performance.now();
+  let angL = 0, angR = 0;              // 卷盘角度
+  let vuL = 0.35, vuR = 0.35;          // VU 表惯量
+  let prog = 0.18;                     // 播放进度 0..1
+  const DUR = 178;                     // 假定总长 2:58
+
+  const ndL = document.getElementById("ndL");
+  const ndR = document.getElementById("ndR");
+  const hubL = document.getElementById("hubL");
+  const hubR = document.getElementById("hubR");
+  const packL = document.getElementById("packL");
+  const packR = document.getElementById("packR");
+  const lcd = document.getElementById("lcd");
+  const tneedle = document.getElementById("tneedle");
+  const tfreq = document.getElementById("tfreq");
+
+  function fmt(s){
+    s = Math.max(0, Math.floor(s));
+    return String(Math.floor(s/60)).padStart(2,"0") + ":" + String(s%60).padStart(2,"0");
+  }
+
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    if (playing) { t += dt; prog += dt / DUR; if (prog > 1) prog = 0; }
+
+    /* 卷盘：A 面播放时左盘半径由 74 缩到 26，右盘反之；角速度 = 线速度 / 半径 */
+    const rl = 92 - 58 * prog;
+    const rr = 34 + 58 * prog;
+    packL.style.width = packL.style.height = rl.toFixed(1) + "px";
+    packR.style.width = packR.style.height = rr.toFixed(1) + "px";
+    if (playing) {
+      angL += (140 / rl) * 12 * dt;
+      angR += (140 / rr) * 12 * dt;
+    }
+    hubL.style.transform = "translate(-50%,-50%) rotate(" + angL.toFixed(1) + "deg)";
+    hubR.style.transform = "translate(-50%,-50%) rotate(" + angR.toFixed(1) + "deg)";
+
+    /* 频谱 */
+    for (let c = 0; c < NCOL; c++) {
+      const v = playing ? bandLevel(c, t) : 0;
+      const lit = Math.round(v * NSEG);
+      const col = cols[c];
+      if (lit !== col.last) {
+        for (let s = 0; s < NSEG; s++) {
+          col.segs[s].classList.toggle("on", s >= NSEG - lit);
+        }
+        col.last = lit;
+      }
+    }
+
+    /* VU：目标值 + 一阶低通模拟指针惯量（attack 快、release 慢） */
+    const rms = 0.30 + 0.55 * Math.abs(Math.sin(t * 1.9) * Math.sin(t * 0.53 + 1.2));
+    const tgtL = playing ? Math.min(1, rms * (0.92 + 0.16 * Math.sin(t * 2.7))) : 0;
+    const tgtR = playing ? Math.min(1, rms * (0.92 + 0.16 * Math.sin(t * 2.7 + 0.9))) : 0;
+    const kA = 1 - Math.pow(0.001, dt), kR = 1 - Math.pow(0.55, dt);
+    vuL += (tgtL - vuL) * (tgtL > vuL ? kA : kR);
+    vuR += (tgtR - vuR) * (tgtR > vuR ? kA : kR);
+    ndL.setAttribute("transform", "rotate(" + (-42 + vuL * 84).toFixed(1) + " 70 104)");
+    ndR.setAttribute("transform", "rotate(" + (-42 + vuR * 84).toFixed(1) + " 70 104)");
+
+    /* 计数器 / 调谐指针 */
+    lcd.textContent = fmt(prog * DUR);
+    tneedle.style.left = (8 + prog * 84) + "%";
+    tfreq.textContent = (88 + prog * 20).toFixed(2);
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  /* ── 走带按键 ── */
+  document.querySelectorAll(".key").forEach(function(k){
+    k.addEventListener("click", function(){
+      const act = k.dataset.k;
+      if (act === "play") {
+        playing = true;
+        document.getElementById("kPlay").classList.add("on");
+      } else if (act === "pause") {
+        playing = !playing;
+        document.getElementById("kPlay").classList.toggle("on", playing);
+      } else if (act === "stop") {
+        playing = false; prog = 0;
+        document.getElementById("kPlay").classList.remove("on");
+      } else if (act === "rew") {
+        prog = Math.max(0, prog - 0.08);
+      } else if (act === "ff") {
+        prog = Math.min(1, prog + 0.08);
+      }
+      if (act !== "pause" && act !== "stop") {
+        document.querySelectorAll(".key").forEach(function(x){
+          if (x.dataset.k !== "play") x.classList.remove("on");
+        });
+      }
+    });
+  });
+
+  /* ── 旋钮拖动 ── */
+  document.querySelectorAll(".kbody").forEach(function(kb){
+    let dragging = false, startY = 0, startRot = 0, rot = 0;
+    const mark = kb.querySelector(".kmark");
+    const cur = parseFloat((mark.style.transform.match(/rotate\(([-\d.]+)deg\)/) || [0, 0])[1]) || 0;
+    rot = cur;
+
+    kb.addEventListener("pointerdown", function(e){
+      dragging = true; startY = e.clientY; startRot = rot;
+      kb.setPointerCapture(e.pointerId);
+      kb.style.cursor = "grabbing";
+    });
+    kb.addEventListener("pointermove", function(e){
+      if (!dragging) return;
+      rot = Math.max(-135, Math.min(135, startRot + (startY - e.clientY) * 1.6));
+      mark.style.transform = "translateY(-100%) rotate(" + rot.toFixed(1) + "deg)";
+      const span = kb.dataset.k === "tune" ? 88 : 100;
+      const val = (rot + 135) / 270;
+      if (kb.dataset.k === "vol") {
+        document.getElementById("vVol").textContent = Math.round(val * 100);
+      } else if (kb.dataset.k === "tune") {
+        document.getElementById("vTune").textContent = (88 + val * 20).toFixed(1);
+      }
+    });
+    kb.addEventListener("pointerup", function(e){
+      dragging = false; kb.style.cursor = "grab";
+      kb.releasePointerCapture(e.pointerId);
+    });
+  });
+
+  /* ── 电源 ── */
+  document.getElementById("pwr").addEventListener("click", function(){
+    this.classList.toggle("on");
+  });
+
+  /* ── 自适应缩放 ── */
+  function fit(){
+    const st = document.getElementById("stage");
+    const s = Math.min(1, (window.innerWidth - 60) / st.offsetWidth,
+                          (window.innerHeight - 60) / st.offsetHeight);
+    st.style.transform = "scale(" + s + ")";
+  }
+  window.addEventListener("resize", fit);
+  fit();
+})();
+</script>
+</body>
+</html>
