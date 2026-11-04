@@ -52,6 +52,31 @@ WEB_STATIC = ("index.html", "app.css", "app.js",
               # 6 套复古主题注入器 + 频谱可视化：两页共用
               "theme.js", "viz.js")
 
+#: ``web_ui/player/`` 下的播放器模块（内核 / 两套皮肤 / 三个纯逻辑模块）。
+#:
+#: ⚠ **自动扫描，不写死文件名**：加一套皮肤或一个纯逻辑模块时，打包脚本
+#:   不该再改一次 —— 漏改的表现是「浏览器里一切正常，EXE 里 404、
+#:   PlayerCore is not defined」，而且两套产物（Nuitka / PyInstaller）
+#:   各有一份清单，漏一处就只坏一边，极难查。
+#:   排除 ``*.test.js``：那是 node 跑的单测，不进产物。
+PLAYER_DIR = os.path.join(ROOT, "web_ui", "player")
+
+
+def _player_static():
+    if not os.path.isdir(PLAYER_DIR):
+        return ()
+    out = []
+    for n in sorted(os.listdir(PLAYER_DIR)):
+        if not n.endswith((".js", ".css")):
+            continue
+        if n.endswith(".test.js"):
+            continue
+        out.append("player/" + n)
+    return tuple(out)
+
+
+WEB_STATIC_SUB = _player_static()
+
 DLLS = ("libgme.dll", "libstdc++-6.dll",
         "libgcc_s_seh-1.dll", "libwinpthread-1.dll")
 
@@ -196,10 +221,15 @@ def build_args():
         args += ["--icon", icon]
 
     # 前端静态资源 → <MEIPASS>/web_ui/，对上 server.py 的 WEB_DIR
-    for n in WEB_STATIC:
+    for n in WEB_STATIC + WEB_STATIC_SUB:
         src = os.path.join(ROOT, "web_ui", n)
+        # 子目录要保留层级：PyInstaller 的 --add-data 只把文件放进 DEST 目录，
+        # 不会自动建 ``player/``。直接给 "web_ui" 会把 player/*.js 摊平到
+        # web_ui/ 根下，服务端按 "web_ui/player/x.js" 找不到。
+        sub = os.path.dirname(n)
+        dest = "web_ui" if not sub else os.path.join("web_ui", *sub.split("/"))
         if os.path.isfile(src):
-            args += ["--add-data", src + sep + "web_ui"]
+            args += ["--add-data", src + sep + dest]
         else:
             print("⚠ 缺前端文件 %s" % src, flush=True)
 

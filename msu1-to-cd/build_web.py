@@ -49,6 +49,31 @@ WEB_STATIC = ("index.html", "app.css", "app.js",
               # 直接报 "VizKit is not defined"，试听功能整块失效。
               "viz.js")
 
+#: ``web_ui/player/`` 下的播放器模块（内核 / 两套皮肤 / 三个纯逻辑模块）。
+#:
+#: ⚠ **自动扫描，不写死文件名**：加一套皮肤或一个纯逻辑模块时，打包脚本
+#:   不该再改一次 —— 漏改的表现是「浏览器里一切正常，EXE 里 404、
+#:   PlayerCore is not defined」，而且两套产物（Nuitka / PyInstaller）
+#:   各有一份清单，漏一处就只坏一边，极难查。
+#:   排除 ``*.test.js``：那是 node 跑的单测，不进产物。
+PLAYER_DIR = os.path.join(ROOT, "web_ui", "player")
+
+
+def _player_static():
+    if not os.path.isdir(PLAYER_DIR):
+        return ()
+    out = []
+    for n in sorted(os.listdir(PLAYER_DIR)):
+        if not n.endswith((".js", ".css")):
+            continue
+        if n.endswith(".test.js"):
+            continue
+        out.append("player/" + n)
+    return tuple(out)
+
+
+WEB_STATIC_SUB = _player_static()
+
 #: libgme 及其 mingw 依赖，必须与 exe 同级（msu1_to_cd 按 __file__ 同目录找）
 #:
 #: ⚠ ``zlib1.dll`` **不在这里**（v5.2.0.6 起）。放开 tkinter 之后 Tk 自己也
@@ -142,7 +167,7 @@ def build_cmd(standalone=False):
         cmd.append("--windows-icon-from-ico=" + icon)
 
     # 前端静态资源：落到 <dist>/web_ui/，server.py 的 WEB_DIR 正好指这儿
-    for n in WEB_STATIC:
+    for n in WEB_STATIC + WEB_STATIC_SUB:
         src = os.path.join(ROOT, "web_ui", n)
         cmd.append("--include-data-files=%s=web_ui/%s" % (src, n))
 

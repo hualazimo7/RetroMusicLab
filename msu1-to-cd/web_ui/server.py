@@ -77,6 +77,22 @@ STATIC_OK = {"index.html", "app.css", "app.js", "favicon.ico", "logo.svg",
              # 频谱 / 波形可视化（VizKit）：两页共用，见 web_ui/viz.js
              "viz.js"}
 
+#: 播放器模块目录（内核 + 两套皮肤）：允许 player/ 下的 js/css/html。
+#: 只放行这三类后缀、且路径里不许出现 ".." 或反斜杠 —— 白名单之外仍然 404。
+PLAYER_PREFIX = "player/"
+PLAYER_EXT = (".js", ".css", ".html")
+
+
+def static_ok(name):
+    """静态资源放行判定：白名单 + player/ 目录。"""
+    if name in STATIC_OK:
+        return True
+    if not name.startswith(PLAYER_PREFIX):
+        return False
+    if ".." in name or "\\" in name:
+        return False
+    return name.endswith(PLAYER_EXT)
+
 #: 下载页的状态单例。**延迟创建** —— 首次进下载页才 import
 #: ``joshw_source`` / ``joshw_dl`` / ``dl_convert``，主界面启动不受它们拖累。
 _DL = None
@@ -1601,7 +1617,7 @@ def make_handler(state):
             if path == "/":
                 path = "/index.html"
             name = path.lstrip("/")
-            if name in STATIC_OK:
+            if static_ok(name):
                 self._static(name)
                 return
 
