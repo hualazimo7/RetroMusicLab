@@ -33,6 +33,9 @@ window.addEventListener("unhandledrejection", function (e) {
 })();
 </script>
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="player/player.css">
+<link rel="stylesheet" href="player/skin_deck.css">
+<link rel="stylesheet" href="player/skin_aurora.css">
 <link rel="stylesheet" href="cloud.css">
 </head>
 <body>
@@ -295,74 +298,14 @@ window.addEventListener("unhandledrejection", function (e) {
     </aside>
   </div>
 
-  <!-- ═══════════ 底部 dock ═══════════ -->
+  <!-- ═══════════ 底部 dock ═══════════
+       播放器由 PlayerView 接管（两套皮肤二选一），「开始转换」留在原处。 -->
   <footer class="dock">
-
-    <div class="now">
-      <div class="now-cover">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M9.5 17.5V6.8l9-1.8v9.4" stroke="currentColor" stroke-width="1.6"
-                stroke-linejoin="round"/>
-          <circle cx="7.6" cy="17.8" r="2.3" stroke="currentColor" stroke-width="1.6"/>
-          <circle cx="16.6" cy="15.9" r="2.3" stroke="currentColor" stroke-width="1.6"/>
-        </svg>
-      </div>
-      <div class="now-text">
-        <div class="now-name" id="nowName">未在播放</div>
-        <div class="now-meta" id="nowMeta">转换完成后可试听输出</div>
-      </div>
-    </div>
-
-    <div class="transport">
-      <div class="tbtns">
-        <button class="tbtn" id="btnPrev" title="上一个">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M7 6v12M18 6.8v10.4L9.6 12Z" stroke="currentColor" stroke-width="1.7"
-                  stroke-linejoin="round" stroke-linecap="round"/>
-          </svg>
-        </button>
-        <button class="tbtn play" id="btnPlay" title="播放">
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M8.5 5.6v12.8L18.6 12Z"/>
-          </svg>
-        </button>
-        <button class="tbtn" id="btnNext" title="下一个">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M17 6v12M6 6.8v10.4L14.4 12Z" stroke="currentColor" stroke-width="1.7"
-                  stroke-linejoin="round" stroke-linecap="round"/>
-          </svg>
-        </button>
-      </div>
-
-      <div class="wave-wrap">
-        <div class="wave" id="wave"></div>
-        <div class="wave-head" id="waveHead"></div>
-      </div>
-
-      <div class="timecode">
-        <span id="tcNow">0:00</span>
-        <span class="tc-sep">/</span>
-        <span id="tcAll">0:00</span>
-      </div>
-    </div>
-
-    <div class="dock-right">
-      <div class="vol">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M4 9.5h3L11 6v12L7 14.5H4Z" stroke="currentColor" stroke-width="1.6"
-                stroke-linejoin="round"/>
-          <path d="M14.5 9a4.2 4.2 0 0 1 0 6" stroke="currentColor" stroke-width="1.6"
-                stroke-linecap="round"/>
-        </svg>
-        <input type="range" class="vol-slider" min="0" max="100" value="72">
-      </div>
-
-      <button class="btn-go" id="btnGo" disabled>
-        <span class="go-label">开始转换</span>
-        <span class="go-sub">先添加音源</span>
-      </button>
-    </div>
-
+    <div class="dock-player" id="pvHost"></div>
+    <button class="btn-go" id="btnGo" disabled>
+      <span class="go-label">开始转换</span>
+      <span class="go-sub">先添加音源</span>
+    </button>
   </footer>
 
   <!-- 进度条（点击展开日志） -->
@@ -387,6 +330,14 @@ window.addEventListener("unhandledrejection", function (e) {
 <script src="theme.js"></script>
 <script src="cloud.js"></script>
 <script src="viz.js"></script>
+<script src="player/player_core.js"></script>
+<script src="player/sources.js"></script>
+<script src="player/ui.js"></script>
+<script src="player/deck_physics.js"></script>
+<script src="player/level_scale.js"></script>
+<script src="player/aurora_theme.js"></script>
+<script src="player/skin_deck.js"></script>
+<script src="player/skin_aurora.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -35,8 +35,6 @@ const S = {
   checked: new Set(),
   tab: "sources",
   playingId: 0,
-  waveBars: [],
-  waveProgress: 0,
   /* 用户亲手选的输出目录。**不能**从 #pathText 读 —— 那里的占位提示文字
      一旦被当成路径发给后端，后端就会在磁盘上建一个名叫
      「（默认：音源同级的 output 目录）」的目录。 */
@@ -78,7 +76,6 @@ async function api(path, body) {
 function setTheme(t) {
   ThemeKit.apply(t);
   paintThemeBtns();
-  paintWave();
   VIZ.invalidateColors();   /* 让频谱下一帧按新主题取色 */
 }
 
@@ -395,110 +392,35 @@ function mulberry32(a) {
   };
 }
 
-function buildFakeWave(seed) {
-  const N = 118;
-  const rnd = mulberry32(seed || 7);
-  const out = [];
-  for (let i = 0; i < N; i++) {
-    const x = i / N;
-    const env = 0.34 + 0.66 * Math.pow(Math.sin(Math.PI * Math.pow(x, 0.86)), 0.55);
-    const wob = 0.55 + 0.45 * Math.sin(x * 27.3 + 1.1) * Math.cos(x * 9.7);
-    const h = env * (0.42 + 0.58 * wob) * (0.55 + 0.45 * rnd());
-    out.push(Math.max(0.09, Math.min(1, h)));
+/* ---------- 播放（统一走 PlayerCore，方案 §4）----------
+   ⚠ 本页不再自建 audio 实例：单例、状态、进度全部由内核持有。
+   本段只做两件事：把输出列表接到内核、把内核状态同步回表格高亮。 */
+const PL = PlayerCore.init({
+  source: PlayerSources.converter({ outputs: () => S.outputs })
+});
+
+PL.on("state", (s) => {
+  const id = s.id ? Number(String(s.id).slice(3)) : 0;   /* "id:12" -> 12 */
+  if (id !== S.playingId) { S.playingId = id; renderTable(); }
+  if (s.playing) {
+    VIZ.touched = true;
+    if (VIZ.on && VIZ.ensure()) VIZ.start();
+  } else {
+    VIZ.stop();
   }
-  return out;
-}
+});
 
-function drawWave() {
-  $("#wave").innerHTML = S.waveBars
-    .map((h) => `<i style="height:${(h * 100).toFixed(1)}%"></i>`).join("");
-  paintWave();
-}
-
-function paintWave() {
-  const cut = Math.round(S.waveBars.length * S.waveProgress);
-  const bars = $("#wave").querySelectorAll("i");
-  bars.forEach((el, i) => el.classList.toggle("on", i < cut));
-  $("#waveHead").style.left = "calc(" + (S.waveProgress * 100).toFixed(2) + "% - 0.75px)";
-}
-
-/* 用 Web Audio 解真实波形；解码失败就保留装饰波形 */
-async function loadRealWave(url) {
-  try {
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    const ctx = new Ctx();
-    const raw = await fetch(url).then((r) => r.arrayBuffer());
-    const audio = await ctx.decodeAudioData(raw);
-    const data = audio.getChannelData(0);
-    const N = 118;
-    const step = Math.max(1, Math.floor(data.length / N));
-    const peaks = [];
-    for (let i = 0; i < N; i++) {
-      let max = 0;
-      const from = i * step;
-      const to = Math.min(data.length, from + step);
-      for (let j = from; j < to; j += 8) max = Math.max(max, Math.abs(data[j]));
-      peaks.push(max);
-    }
-    const top = Math.max.apply(null, peaks) || 1;
-    ctx.close();
-    return peaks.map((p) => Math.max(0.06, Math.min(1, p / top)));
-  } catch (e) {
-    return null;
-  }
-}
-
-/* ---------- 播放 ---------- */
-const audio = new Audio();
-audio.preload = "auto";
-
+/* 表格里的播放按钮：同一首再点 = 暂停/继续 */
 function playOutput(id) {
-  const item = S.outputs.find((o) => o.id === id);
-  if (!item) return;
-  if (S.playingId === id && !audio.paused) { audio.pause(); return; }
-  S.playingId = id;
-  S.waveProgress = 0;
-  audio.src = "/api/audio?id=" + id;
-  audio.play().catch(() => {});
-  /* 频谱：ensure 必须在 play() 之后、且在用户手势里 —— playOutput 只会被
-     点击调起，这个位置天然满足。失败（老 WebView 没有 AudioContext）
-     就当没有可视化，不影响播放。 */
-  VIZ.touched = true;
-  VIZ.paintEmpty();
-  if (VIZ.on && VIZ.ensure()) VIZ.start();
-  $("#nowName").textContent = item.name.replace(/\.wav$/i, "");
-  $("#nowMeta").textContent = "WAV · " + fmtSize(item.size);
-  $("#btnPlay").innerHTML = ICONS.pause;
-  S.waveBars = buildFakeWave(id * 31 + 7);
-  drawWave();
-  loadRealWave("/api/audio?id=" + id).then((real) => {
-    if (real && S.playingId === id) { S.waveBars = real; drawWave(); }
-  });
-  renderTable();
+  const key = "id:" + id;
+  if (PL.state.id === key && PL.state.playing) { PL.pause(); return; }
+  if (PL.state.id === key) { PL.play(); return; }
+  PL.load(key, true);
 }
-
-audio.ontimeupdate = () => {
-  if (audio.duration) {
-    S.waveProgress = audio.currentTime / audio.duration;
-    paintWave();
-    $("#tcNow").textContent = fmtDur(audio.currentTime);
-    $("#tcAll").textContent = fmtDur(audio.duration);
-  }
-};
-audio.onended = () => {
-  $("#btnPlay").innerHTML = ICONS.play;
-  S.playingId = 0;
-  renderTable();
-  VIZ.stop();
-};
-audio.onplay = () => { if (VIZ.on && VIZ.ensure()) VIZ.start(); };
-audio.onpause = () => VIZ.stop();
 
 function stepTrack(d) {
   if (!S.outputs.length) return;
-  const i = S.outputs.findIndex((o) => o.id === S.playingId);
-  const n = (i < 0 ? 0 : i + d + S.outputs.length) % S.outputs.length;
-  playOutput(S.outputs[n].id);
+  if (d > 0) PL.next(false); else PL.prev();
 }
 
 /* ---------- 试听频谱 / 波形（v5.9.6） ----------
@@ -508,7 +430,7 @@ function stepTrack(d) {
    ⚠ 必须懒建 AudioContext（第一次真播放才建）：Chrome 只在用户手势里
      才肯把 AudioContext 从 suspended 恢复，页面加载时建就是永久平线。 */
 const VIZ = VizKit.create({
-  audio: audio,
+  audio: PlayerCore.audio,
   canvas: "#vizCanvas",
   wrap: "#vizWrap",
   empty: "#vizEmpty",
@@ -584,10 +506,6 @@ function applyState(d) {
     S.tab = "outputs";
     S.lastSig.sig = "";
     renderStage(); renderTable();
-  }
-  if (d.state === "done" && d.outputs.length && !S.waveBars.length) {
-    S.waveBars = buildFakeWave(11);
-    drawWave();
   }
 }
 
@@ -904,30 +822,7 @@ function bind() {
   $("#progStrip").onclick = () => { $("#logPanel").hidden = !$("#logPanel").hidden; };
   $("#logClose").onclick = () => { $("#logPanel").hidden = true; };
 
-  $("#btnPlay").onclick = () => {
-    if (!S.playingId) {
-      if (S.outputs.length) playOutput(S.outputs[0].id);
-      else toast("还没有可试听的输出");
-      return;
-    }
-    if (audio.paused) { audio.play(); $("#btnPlay").innerHTML = ICONS.pause; }
-    else { audio.pause(); $("#btnPlay").innerHTML = ICONS.play; }
-  };
-  $("#btnPrev").onclick = () => stepTrack(-1);
-  $("#btnNext").onclick = () => stepTrack(1);
-
-  $("#wave").onclick = (e) => {
-    if (!audio.duration) return;
-    const r = e.currentTarget.getBoundingClientRect();
-    audio.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * audio.duration;
-  };
-
-  const vol = $(".vol-slider");
-  vol.oninput = () => {
-    audio.volume = vol.value / 100;
-    vol.style.setProperty("--vol", vol.value + "%");
-  };
-  vol.style.setProperty("--vol", vol.value + "%");
+  /* 播放控制已由 PlayerView 接管（player/ui.js），这里不再绑 dock 上的旧按钮。 */
 
   $$("#fmtGrid .fmt-card").forEach((c) => {
     c.onclick = () => {
@@ -1142,10 +1037,9 @@ async function boot() {
   await ThemeKit.boot();
   setTheme(q || ThemeKit.now() || "dark");
   buildThemePanel();
-  S.waveBars = buildFakeWave(11);
-  drawWave();
   bind();
   VIZ.init();          /* 频谱开关 + 空态；AudioContext 留到第一次播放再建 */
+  PL.mount($("#pvHost"));   /* 播放器挂载（皮肤由 rml-player-skin 决定） */
   renderSources(); renderStage(); renderTable(); renderProgress(); paintOutDir();
   paintPsf();          /* 不 await：BIOS 检测要跑一次解码器，别挡住首屏 */
   probeFlac();         /* 不 await：同上，编码器不可用就把卡片置灰 */

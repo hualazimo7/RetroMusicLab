@@ -139,7 +139,7 @@ svg { display: block; }
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-rows: 50px minmax(0, 1fr) 86px;
+  grid-template-rows: 50px minmax(0, 1fr) 200px;   /* dock 200：极光点阵 26×16 @11px 需要的高度 */
   height: 100vh;
 }
 
@@ -954,14 +954,21 @@ input.sw:checked::after {
 
 /* ═══════════ 底部 dock ═══════════ */
 .dock {
-  display: grid;
-  grid-template-columns: 232px minmax(0, 1fr) 340px;
+  display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 0 14px 0 16px;
+  gap: 16px;
+  padding: 0 16px;
   border-top: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface) 62%, transparent);
-  backdrop-filter: blur(16px);
+  /* 去掉 backdrop-filter：整屏只留一处大面积模糊（方案 §8），
+     播放器自己的材质由皮肤负责。 */
+}
+
+/* 播放器挂载点：占满剩余宽度，「开始转换」固定右侧 */
+.dock-player {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
 }
 
 /* 正在播放 */

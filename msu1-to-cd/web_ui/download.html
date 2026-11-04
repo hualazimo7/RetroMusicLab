@@ -36,6 +36,9 @@ window.addEventListener("unhandledrejection", function (e) {
 <link rel="stylesheet" href="/app.css">
 <link rel="stylesheet" href="/download.css">
 <link rel="stylesheet" href="/cloud.css">
+<link rel="stylesheet" href="/player/player.css">
+<link rel="stylesheet" href="/player/skin_deck.css">
+<link rel="stylesheet" href="/player/skin_aurora.css">
 </head>
 <body class="dl-body">
 
@@ -233,55 +236,10 @@ window.addEventListener("unhandledrejection", function (e) {
            ① 播放键两边加「上一曲 / 下一曲」（`dlPrev` / `dlNext`）；
            ② 进度条从「曲名下面那一小截」挪到**整行独占**，并且可以点、可以拖。
               原来它只有 meta 那点宽度（约 150px），就算绑了事件也很难点中。 -->
-      <div class="dl-play-now">
-        <div class="dl-transport">
-          <button id="dlPrev" class="dl-skip" disabled title="上一曲"
-                  aria-label="上一曲">
-            <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"
-                 fill="none" stroke="currentColor" stroke-width="1.6"
-                 stroke-linecap="round" stroke-linejoin="round">
-              <path d="M7.6 4 3.6 8l4 4"/><path d="M12.4 4 8.4 8l4 4"/>
-            </svg>
-          </button>
-          <button id="dlPlayBtn" class="dl-play-btn" disabled title="播放 / 暂停">▶</button>
-          <button id="dlNext" class="dl-skip" disabled title="下一曲"
-                  aria-label="下一曲">
-            <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"
-                 fill="none" stroke="currentColor" stroke-width="1.6"
-                 stroke-linecap="round" stroke-linejoin="round">
-              <path d="M8.4 4l4 4-4 4"/><path d="M3.6 4l4 4-4 4"/>
-            </svg>
-          </button>
-        </div>
-        <div class="dl-play-meta">
-          <div id="dlPlayName" class="dl-play-name">还没有转出的音频</div>
-        </div>
-        <span id="dlPlayTime" class="dl-play-time">0:00</span>
-        <!-- 音量（v5.2.4）：喇叭键 = 静音开关，滑块 = 音量，记住上次的值。
-             顺序放在时间后面 —— 播放键/曲名/进度才是主角，音量是常用但次要。 -->
-        <button id="dlVolBtn" class="dl-vol-btn" title="静音 / 取消静音"
-                aria-label="静音" aria-pressed="false">
-          <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"
-               fill="none" stroke="currentColor" stroke-width="1.4"
-               stroke-linecap="round" stroke-linejoin="round">
-            <path d="M8.6 2.3 5.3 5.1H2.7v5.8h2.6l3.3 2.8z" fill="currentColor"
-                  stroke="none"/>
-            <path id="dlVolW1" d="M10.9 5.6a3.4 3.4 0 0 1 0 4.8"/>
-            <path id="dlVolW2" d="M12.7 3.8a6 6 0 0 1 0 8.4"/>
-            <path id="dlVolX" d="M11.2 6.1l3.1 3.1M14.3 6.1l-3.1 3.1"
-                  style="display:none"/>
-          </svg>
-        </button>
-        <input id="dlVol" class="dl-vol" type="range" min="0" max="100" step="1"
-               value="80" title="音量" aria-label="音量">
-        <!-- 进度条：点一下跳到那里，按住可以拖。键盘 ←/→ 5 秒、Home/End 首尾。 -->
-        <div id="dlPlaySeek" class="dl-play-seek" role="slider" tabindex="0"
-             aria-label="播放进度" aria-valuemin="0" aria-valuemax="100"
-             aria-valuenow="0" aria-valuetext="0:00">
-          <div id="dlPlayBar" class="dl-play-fill"></div>
-          <span id="dlPlayKnob" class="dl-play-knob"></span>
-        </div>
-      </div>
+      <!-- 播放器：统一走 PlayerView（两套皮肤二选一，见方案 §3–§5）。
+           原来的 .dl-transport / .dl-play-seek / .dl-vol* 全部由组件接管；
+           列表、封面、频谱仍归本页，组件只管「当前这一首」。 -->
+      <div id="pvHost" class="dl-pv"></div>
       <!-- 频谱 / 波形（v5.9.6）：和主界面同一块面板，代码在 viz.js 里。
            放在「正在播放」条和列表之间 —— 眼睛从曲名往下扫，正好看到声音长什么样。 -->
       <div class="dl-viz-head">
@@ -311,6 +269,14 @@ window.addEventListener("unhandledrejection", function (e) {
 <script src="/theme.js"></script>
 <script src="/cloud.js"></script>
 <script src="/viz.js"></script>
+<script src="/player/player_core.js"></script>
+<script src="/player/sources.js"></script>
+<script src="/player/ui.js"></script>
+<script src="/player/deck_physics.js"></script>
+<script src="/player/level_scale.js"></script>
+<script src="/player/aurora_theme.js"></script>
+<script src="/player/skin_deck.js"></script>
+<script src="/player/skin_aurora.js"></script>
 <script src="/download.js"></script>
 </body>
 </html>

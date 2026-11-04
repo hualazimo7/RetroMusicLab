@@ -44,7 +44,7 @@
     wavAt: 0,          // 上次拉列表的时间（节流用）
     wavDest: null,     // 上次列表对应的保存目录（切机种会变，必须重扫）
     playRel: "",       // 正在放的那首（相对路径）
-    seeking: false,    // 正在拖进度条 —— 期间 ontimeupdate 不许回写（v6.0.3）
+    /* seeking 字段已删：拖动期间的回拽问题由内核 seek() 统一处理 */
     coverGame: "",     // 封面区当前显示的**游戏名**（同一游戏连播不重拉图）
     coverN: 0,         // 这个游戏有几张图（v6.0.7 轮播）
     coverIdx: 0,       // 现在显示的是第几张
@@ -364,19 +364,21 @@
        1. 列表：GET /api/dl/wavs → 递归扫 WAV 根目录，**新的在前**；
        2. 播放：GET /api/dl/audio?rel=<相对路径> → 后端做越界校验后发字节。
      路径一律用后端给的 rel，前端不拼绝对路径。 */
-  const audio = new Audio();
-  audio.preload = "none";
-  /* 探针：audio 是本 IIFE 的闭包变量，shot.py / 门禁在外面读不到。
-     挂到 window 上，跟 index.html 的 window.__errs 同一个思路 ——
-     播放没声音时能直接读出 paused / currentTime / error.code，
-     不用对着界面猜。 */
-  window.__dlAudio = audio;
+  /* 播放器内核（方案 §6）：audio 单例、状态、进度、音量、封面轮播全在里面。
+     本页只剩两件事：把试听列表接给内核、把内核状态映射回列表与封面区。
+     ⚠ 本页不再自建 audio 实例。 */
+  const PL = PlayerCore.init({
+    source: PlayerSources.download({ rows: () => S.wavs || [] })
+  });
+  /* 探针：内核是本 IIFE 的闭包变量，门禁 / 截图脚本在外面读不到。
+     播放没声音时直接读 window.__dlPlayer.state 与 .audio.error，不用对着界面猜。 */
+  window.__dlPlayer = PL;
 
   /* 频谱 / 波形（v5.9.6）：和主界面同一块面板，实现全在 viz.js 里。
      ⚠ AudioContext 是**懒建**的（第一次真播放才建）—— Chrome 只在用户
        手势里才肯把它从 suspended 恢复，这里就建的话频谱永远是一条平线。 */
   const viz = VizKit.create({
-    audio: audio,
+    audio: PlayerCore.audio,
     canvas: "#dlVizCanvas",
     wrap: "#dlVizWrap",
     empty: "#dlVizEmpty",
@@ -385,69 +387,9 @@
   });
   window.__dlViz = viz;        /* 探针，同 window.__dlAudio 的理由 */
 
-  /* 音量（v5.2.4）：喇叭键 = 静音开关，滑块 = 音量，值记在 localStorage。
-     ⚠ `new Audio()` 的默认音量是 **1.0** —— 不记住的话每次打开下载页
-     第一下播放都会「突然最大声」，尤其夜里戴着耳机时很要命。
-     口径：**只用 audio.volume 表示音量**，不碰 audio.muted
-     （两个开关各存一份状态，必然有一天对不上：滑块 40% 但 muted=true，
-     界面到底该显示哪个？）。静音 = volume 归 0，取消静音 = 恢复原值。 */
-  const VOL_KEY = "dl_vol";
-  let volBefore = 0.8;                 // 静音前的音量，取消静音时恢复到它
-
-  function paintVol() {
-    const v = audio.volume;
-    const muted = v <= 0;
-    const btn = $("#dlVolBtn");
-    btn.classList.toggle("muted", muted);
-    btn.setAttribute("aria-pressed", muted ? "true" : "false");
-    btn.title = muted ? "取消静音" : "静音（可滚轮微调）";
-    $("#dlVolW1").style.display = muted ? "none" : "";
-    $("#dlVolW2").style.display = muted ? "none" : "";
-    $("#dlVolX").style.display = muted ? "" : "none";
-    const el = $("#dlVol");
-    el.value = String(Math.round(v * 100));
-    // 轨道是自绘的两段式渐变，填充比例靠这个变量传给 CSS
-    el.style.setProperty("--vol-pct", (v * 100).toFixed(1) + "%");
-  }
-
-  function setVol(v, save) {
-    v = Math.max(0, Math.min(1, Number(v) || 0));
-    audio.volume = v;
-    if (v > 0) volBefore = v;          // 只有非 0 才记，否则静音会把原值冲掉
-    if (save) {
-      try { localStorage.setItem(VOL_KEY, String(Math.round(v * 100))); } catch (e) {}
-    }
-    paintVol();
-  }
-
-  (function initVol() {
-    let pct = 80;
-    try {
-      const raw = localStorage.getItem(VOL_KEY);
-      if (raw !== null && raw !== "") {
-        const n = parseInt(raw, 10);
-        if (isFinite(n)) pct = Math.max(0, Math.min(100, n));
-      }
-    } catch (e) { /* 隐私模式下 localStorage 会抛，忽略即可 */ }
-    if (pct > 0) volBefore = pct / 100;
-    setVol(pct / 100, false);
-  })();
-
-  $("#dlVol").oninput = (e) => setVol(Number(e.target.value) / 100, true);
-  $("#dlVolBtn").onclick = () => {
-    setVol(audio.volume > 0 ? 0 : (volBefore > 0 ? volBefore : 0.8), true);
-  };
-  $("#dlVolBtn").onwheel = (e) => {
-    e.preventDefault();                // 别让滚轮去滚整个侧栏
-    setVol(audio.volume + (e.deltaY < 0 ? 0.05 : -0.05), true);
-  };
-
-  function fmtDur(s) {
-    if (!isFinite(s) || s < 0) s = 0;
-    const m = Math.floor(s / 60);
-    const r = Math.floor(s % 60);
-    return m + ":" + (r < 10 ? "0" : "") + r;
-  }
+  /* 音量（v5.2.4 → 已收归内核）：喇叭键 / 滑块 / 滚轮微调 / 记忆
+     全部由 player/ui.js + PlayerCore 处理，键统一成 rml-player-volume。
+     老键 dl_vol 由内核在首次启动时一次性迁移，不会「切页突然最大声」。 */
 
   async function loadWavs(force) {
     S.wavAt = Date.now();
@@ -476,8 +418,7 @@
       box.innerHTML = '<div class="dl-empty">' + (d.cleared && d.hidden
         ? "列表已清空（" + d.hidden + " 首）—— 音频文件还在磁盘上"
         : "下载并转换后，这里会出现可试听的曲目") + "</div>";
-      showCover(null);                 /* 没有可放的了，封面区跟着回到空态 */
-      syncSkipBtns();                  /* v6.0.3：列表空了，上/下一曲置灰 */
+      /* 列表空了：播放器自己会回到空态（state.empty），不用在这里动 UI */
       return;
     }
     const frag = document.createDocumentFragment();
@@ -504,257 +445,74 @@
     box.innerHTML = "";
     box.appendChild(frag);
     markPlaying();
-    syncSkipBtns();                    /* v6.0.3：列表重建后同步上/下一曲的可用性 */
+    /* 上/下一曲的可用性由内核的 canPrev/canNext 决定，列表重建不用管它 */
   }
 
+  /* 列表高亮：内核的 id 是 "rel:xxx"，本页业务仍用 S.playRel（裸 rel），
+     两者在 onState 里同步，其余代码照旧读 S.playRel。 */
   function markPlaying() {
+    const playing = PL.state.playing;
     document.querySelectorAll(".dl-play-row").forEach((el) => {
       const on = el.dataset.rel === S.playRel;
       el.classList.toggle("on", on);
       const ico = el.querySelector(".p-ico");
-      if (ico) ico.textContent = (on && !audio.paused) ? "❙❙" : "▶";
+      if (ico) ico.textContent = (on && playing) ? "❙❙" : "▶";
     });
   }
 
+  /* 点列表 = 切歌 / 暂停 / 继续 —— 三种语义由内核判断，
+     这里不再自己比 src、不再自己 pause（老实现两处各写一份，必然打架）。 */
   function playWav(w) {
-    const same = S.playRel === w.rel;
-    if (same && !audio.paused) { audio.pause(); return; }   // 再点一次 = 暂停
-    if (same && audio.src) { audio.play().catch(() => {}); return; }
-    S.playRel = w.rel;
-    audio.src = "/api/dl/audio?rel=" + encodeURIComponent(w.rel);
-    /* v6.0.3：换曲先把进度条清零。不清的话上一首的百分比会留在新曲目上
-       （实测：切歌后进度条还显示上一首的 14%，看着像「这首从 14% 开始」）。
-       此刻 duration 还是上一首的旧值，所以不能靠 paintProgress 算。 */
-    $("#dlPlayBar").style.width = "0%";
-    $("#dlPlayKnob").style.left = "0%";
-    $("#dlPlayTime").textContent = "0:00";
-    audio.play().catch((e) => {
-      toast("播放失败：" + (e && e.message ? e.message : "格式不支持"));
-    });
-    const nm = String(w.name || "").replace(/\.(wav|flac|mp3|ogg)$/i, "");
-    $("#dlPlayName").textContent = w.game ? nm + " · " + w.game : nm;
-    $("#dlPlayName").classList.add("on");
-    $("#dlPlayBtn").disabled = false;
-    viz.touched = true;
-    viz.paintEmpty();
-    if (viz.on && viz.ensure()) viz.start();
-    showCover(w);                 /* v6.0.1：封面跟着「正在试听的那首」走 */
-    markPlaying();
-    syncSkipBtns();               /* v6.0.3：有当前曲目，上/下一曲才可点 */
+    const key = "rel:" + w.rel;
+    if (PL.state.id === key && PL.state.playing) { PL.pause(); return; }
+    if (PL.state.id === key) { PL.play(); return; }
+    PL.load(key, true);
   }
 
-  /* ── 上一曲 / 下一曲（v6.0.3）────────────────────────────
-     用户报：「也没有下一曲、上一曲按钮」。
+  /* ── 进度条：已收归播放器（player/ui.js）──────────────
+     老实现自己算百分比、自己 drag、自己绑 ←/→/Home/End，还为此加了
+     S.seeking 防止 timeupdate 回拽。这些全部由内核 seek() 接管，
+     两套皮肤共用同一份拖拽逻辑 —— 这里不再保留任何副本。 */
 
-     顺序 = 试听列表的显示顺序（``S.wavs``，后端按 WAV→FLAC→MP3→OGG、
-     再按文件名排）。两端**循环** —— 列表只有 3 首时，「下一曲」按到底
-     不该变成一个死键。
+  /* ── 封面（v6.0.1；v6.0.7 轮播；现已归内核）──────────
+     用户要求：「试听时显示对应游戏的封面，一个游戏有多张就轮播」。
 
-     只有一首时**重新从头播**，不走 ``playWav``：同一首 rel 在 ``playWav``
-     里的语义是「暂停」，用户按「下一曲」却暂停了，那是 bug 不是特性。 */
-  function stepTrack(dir) {
-    const list = S.wavs || [];
-    if (!list.length) return;
-    let i = list.findIndex((w) => w.rel === S.playRel);
-    if (i < 0) i = dir > 0 ? -1 : 0;
-    const n = list.length;
-    const j = ((i + dir) % n + n) % n;
-    if (j === i) {
-      audio.currentTime = 0;
-      audio.play().catch(() => {});
-      return;
-    }
-    playWav(list[j]);
-  }
+     ⚠ 定时器在内核里（Core.setCoverFor），本页**不再写 setInterval**：
+       两页各写一份会让 /api/dl/cover 的请求翻倍，切肤时索引还会各走各的。
+     本页只负责把 state.cover.url 画出来、以及维护折叠状态。 */
 
-  function syncSkipBtns() {
-    const on = (S.wavs || []).length > 0 && !!S.playRel;
-    $("#dlPrev").disabled = !on;
-    $("#dlNext").disabled = !on;
-  }
-
-  /* ── 进度条：可点、可拖、可键盘（v6.0.3）─────────────────
-     用户报：「播放器进度无法调节」。原来那条 ``.dl-play-bar`` 只是个纯展示
-     的 div，没有任何事件；宽度也只有曲名那一截（约 150px），就算绑了事件
-     也很难点中。
-
-     三条实现要点：
-
-     1. ``pointerdown/move/up`` + ``setPointerCapture`` —— 鼠标、触控笔、
-        手指一套代码。不用 mousedown/touchstart 各写一份。
-     2. 拖动期间置 ``S.seeking``，让 ``ontimeupdate`` 让位。否则每 250ms
-        一次的时间更新会把用户拖到的位置往回拽 —— 表现就是「拖不动」。
-     3. 视觉 4px、命中区 16px（CSS 里 ``::after`` 撑开）。细条好看但点不中，
-        粗条又抢曲名的注意力，两头都要。 */
-  function seekPct() {
-    const d = Number(audio.duration);
-    if (!isFinite(d) || d <= 0) return 0;
-    return Math.min(100, Math.max(0, 100 * audio.currentTime / d));
-  }
-
-  function paintProgress() {
-    const pct = seekPct();
-    const ready = isFinite(Number(audio.duration)) && Number(audio.duration) > 0;
-    $("#dlPlayBar").style.width = pct.toFixed(1) + "%";
-    $("#dlPlayKnob").style.left = pct.toFixed(1) + "%";
-    $("#dlPlayTime").textContent = fmtDur(audio.currentTime || 0);
-    const box = $("#dlPlaySeek");
-    box.classList.toggle("idle", !ready);
-    box.setAttribute("aria-valuenow", String(Math.round(pct)));
-    box.setAttribute("aria-valuetext", fmtDur(audio.currentTime || 0));
-  }
-
-  function seekToRatio(r) {
-    const d = Number(audio.duration);
-    if (!isFinite(d) || d <= 0) return;
-    audio.currentTime = Math.min(1, Math.max(0, r)) * d;
-    /* 立刻重画：Chrome 要等 seek 落定才发 timeupdate，拖的时候会「一卡一卡」。 */
-    paintProgress();
-  }
-
-  function ratioAt(ev) {
-    const b = $("#dlPlaySeek").getBoundingClientRect();
-    if (b.width <= 0) return 0;
-    return (ev.clientX - b.left) / b.width;
-  }
-
-  (function initSeek() {
-    const box = $("#dlPlaySeek");
-    let drag = false;
-
-    box.addEventListener("pointerdown", (ev) => {
-      if (!(Number(audio.duration) > 0)) return;      // 还没加载出时长，忽略
-      if (ev.pointerType === "mouse" && ev.button !== 0) return;
-      drag = true;
-      S.seeking = true;
-      box.classList.add("dragging");
-      document.body.classList.add("dl-seek-drag");
-      try { box.setPointerCapture(ev.pointerId); } catch (e) {}
-      seekToRatio(ratioAt(ev));
-      ev.preventDefault();
-    });
-    box.addEventListener("pointermove", (ev) => {
-      if (drag) seekToRatio(ratioAt(ev));
-    });
-    const end = (ev) => {
-      if (!drag) return;
-      drag = false;
-      S.seeking = false;
-      box.classList.remove("dragging");
-      document.body.classList.remove("dl-seek-drag");
-      try { box.releasePointerCapture(ev.pointerId); } catch (e) {}
-      paintProgress();
-    };
-    box.addEventListener("pointerup", end);
-    box.addEventListener("pointercancel", end);
-    box.addEventListener("lostpointercapture", end);
-
-    /* 键盘：←/→ 5 秒，Home/End 首尾。焦点环已经在 CSS 里给了。 */
-    box.addEventListener("keydown", (ev) => {
-      const d = Number(audio.duration);
-      if (!isFinite(d) || d <= 0) return;
-      if (ev.key === "ArrowLeft" || ev.key === "ArrowRight") {
-        audio.currentTime = Math.min(d, Math.max(0,
-          audio.currentTime + (ev.key === "ArrowRight" ? 5 : -5)));
-        paintProgress();
-        ev.preventDefault();
-      } else if (ev.key === "Home" || ev.key === "End") {
-        audio.currentTime = ev.key === "Home" ? 0 : d;
-        paintProgress();
-        ev.preventDefault();
-      }
-    });
-  })();
-
-  /* ── 封面（v6.0.1，v6.0.7 改成轮播）────────────────────
-     用户要求：「日志栏、试听栏之间开辟单独的一块，用于试听音乐时，
-     显示对应游戏的封面图」。
-
-     v6.0.7 又加了一条：「一个游戏的封面资源应该有若干个，下载时全下载，
-     然后在试听时轮播」。
-
-     图从哪来：后端 /api/dl/covers?game=xxx 回**张数**，
-     /api/dl/cover?game=xxx&i=N 回第 N 张。前端不做任何路径拼接 ——
-     保存目录在后端手上，前端拼出来的路径十有八九是错的。
-
-     ⚠ 同一游戏连播几首时**不重置轮播**（记在 S.coverGame 里）：
-     一张 400 KB 的图反复拉，切歌会明显卡一下；而且用户正在看第 3 张，
-     切到同一游戏的下一首又跳回第 1 张，很烦。
-
-     ⚠ 只在**真的在放**的时候轮播（audio.paused 时跳过）：暂停了画面
-     还在跳，会让人以为程序出问题了。 */
-  const COVER_EVERY_MS = 3000;   // 3 秒一张（用户 2026-10-28 选的）
-
-  function setCoverImg(game, i, force) {
-    const img = $("#dlCoverImg");
-    img.dataset.i = String(i);
-    img.src = "/api/dl/cover?game=" + encodeURIComponent(game) + "&i=" + i
-      + (force ? "&t=" + Date.now() : "");
-  }
-
-  async function loadCoverList(game, force) {
-    let n = 0;
-    try {
-      const q = "/api/dl/covers?game=" + encodeURIComponent(game)
-        + (force ? "&t=" + Date.now() : "");
-      const r = await api(q);
-      n = parseInt(r && r.n, 10) || 0;
-    } catch (e) { n = 0; }
-    if (S.coverGame !== game) return;      // 等待期间又切了歌，作废
-    S.coverN = n;
-    S.coverIdx = 0;
-    if (n > 0) setCoverImg(game, 0, force);
-    else $("#dlCoverBox").classList.remove("has");
-  }
-
-  function showCover(w) {
+  function renderCover(s) {
     const box = $("#dlCoverBox");
     const img = $("#dlCoverImg");
-    const game = (w && w.game) ? String(w.game) : "";
-    const nm = w ? String(w.name || "").replace(/\.(wav|flac|mp3|ogg)$/i, "") : "";
-    $("#dlCoverGame").textContent = game || "还没有在试听";
-    $("#dlCoverTrack").textContent = w
-      ? (nm || "正在播放")
-      : "点一首曲子，这里显示它所属游戏的封面";
-    if (!game) {
-      S.coverGame = "";
-      S.coverN = 0;
-      S.coverIdx = 0;
-      box.classList.remove("has");
-      img.removeAttribute("src");
-      return;
+    const c = s.cover;
+    if ((c && c.url) || s.id) {
+      $("#dlCoverGame").textContent = (c && c.game) || s.sub || "未标注游戏";
+      $("#dlCoverTrack").textContent = s.name || "正在播放";
+    } else {
+      $("#dlCoverGame").textContent = "还没有在试听";
+      $("#dlCoverTrack").textContent = "点一首曲子，这里显示它所属游戏的封面";
     }
-    if (S.coverGame === game && img.getAttribute("src")) return;   // 同一游戏，别重拉
-    S.coverGame = game;
-    S.coverN = 0;
-    S.coverIdx = 0;
-    box.classList.remove("has");          /* 先藏旧的，避免上一张图闪一下 */
-    loadCoverList(game);
+    if (c && c.url) {
+      if (img.dataset.url !== c.url) {
+        img.dataset.url = c.url;
+        img.dataset.i = String(c.idx);
+        box.classList.remove("has");     /* 先藏旧的，避免上一张闪一下 */
+        img.src = c.url;
+      }
+    } else {
+      img.dataset.url = "";
+      img.removeAttribute("src");
+      box.classList.remove("has");
+    }
   }
-
-  /* 轮播：3 秒一张，只在播放中、且这个游戏真的有 2 张以上时才转。 */
-  setInterval(() => {
-    if (!S.coverGame || S.coverN < 2) return;
-    if (audio.paused) return;
-    S.coverIdx = (S.coverIdx + 1) % S.coverN;
-    setCoverImg(S.coverGame, S.coverIdx);
-  }, COVER_EVERY_MS);
 
   (function initCover() {
     const img = $("#dlCoverImg");
     const box = $("#dlCoverBox");
     img.onload = () => box.classList.add("has");
-    /* 这张图 404 / 坏了 → 试下一张；全试完才显示音符占位。
+    /* 这张图 404 / 坏了 → 直接藏起来，内核下一拍会换下一张。
        不弹 toast：封面是锦上添花，为它报错只会打扰用户。 */
-    img.onerror = () => {
-      const i = parseInt(img.dataset.i || "0", 10) || 0;
-      if (S.coverGame && S.coverN > 1 && i + 1 < S.coverN) {
-        S.coverIdx = i + 1;
-        setCoverImg(S.coverGame, S.coverIdx);
-        return;
-      }
-      box.classList.remove("has");
-    };
+    img.onerror = () => box.classList.remove("has");
 
     /* 折叠状态记住：窗口矮的时候用户会收起封面区，下次打开不该又弹回来。 */
     const KEY = "msu1.dl.cover.fold";
@@ -768,43 +526,44 @@
     };
   })();
 
-  audio.onplay = () => {
-    $("#dlPlayBtn").textContent = "❙❙";
-    markPlaying();
-    if (viz.on && viz.ensure()) viz.start();
-  };
-  audio.onpause = () => {
-    $("#dlPlayBtn").textContent = "▶";
-    markPlaying();
-    viz.stop();
-  };
-  audio.onerror = () => {
-    $("#dlPlayBtn").textContent = "▶";
-    // 404 / 格式不支持都会到这里。别静默失败 —— 用户点了没反应最难受。
-    toast("播放失败：文件可能已被移动或删除，正在刷新列表");
-    S.playRel = "";
-    S.wavSig = null;
-    syncSkipBtns();                    /* v6.0.3：当前曲目没了，上/下一曲置灰 */
-    loadWavs(true);
-  };
-  audio.ontimeupdate = () => {
-    /* v6.0.3：拖动期间让位 —— 否则这里每 250ms 把进度条按「真实播放位置」
-       重画一次，用户手指拖到哪儿都会被拽回去，看起来就是「拖不动」。 */
-    if (S.seeking) return;
-    if (!audio.duration) return;
-    paintProgress();
-  };
-  /* 元数据到位 = 知道总时长了：把进度条从 idle 状态放出来，滑块头才跟得上。 */
-  audio.onloadedmetadata = () => paintProgress();
-  audio.onended = () => {
-    S.playRel = "";
-    $("#dlPlayBar").style.width = "0%";
-    $("#dlPlayKnob").style.left = "0%";
-    $("#dlPlayTime").textContent = "0:00";
-    markPlaying();
-    syncSkipBtns();
-    viz.stop();
-  };
+  /* ── 内核状态 → 本页（唯一的状态出口）──────────────────
+     timeupdate 是 4Hz，这里只做「比对后重画」，不重建任何 DOM。 */
+  let lastPaintKey = "";
+  let missingRel = "";
+  PL.on("state", (s) => {
+    const key = (s.id && String(s.id).indexOf("rel:") === 0) ? String(s.id).slice(4) : "";
+    S.playRel = key;
+
+    const paintKey = s.playing + "|" + key;
+    if (paintKey !== lastPaintKey) { lastPaintKey = paintKey; markPlaying(); }
+
+    /* 有曲目就把空态文字收掉：老代码是在 playWav 里顺手置的，
+       搬进内核后漏了这一步，于是「点一首开始试听」会一直盖在频谱上。 */
+    if (s.id && !viz.touched) { viz.touched = true; viz.paintEmpty(); }
+    if (s.playing) { if (viz.on && viz.ensure()) viz.start(); }
+    else viz.stop();
+
+    renderCover(s);
+
+    /* 404 / 文件被删：内核置 status=missing。只提示一次，随后重扫列表。 */
+    if (s.status === "missing" && key && key !== missingRel) {
+      missingRel = key;
+      toast("播放失败：文件可能已被移动或删除，正在刷新列表");
+      S.wavSig = null;
+      loadWavs(true);
+    } else if (s.status !== "missing") {
+      missingRel = "";
+    }
+  });
+
+  PL.on("track", (it) => {
+    const nm = String(it.name || "").replace(/\.(wav|flac|mp3|ogg)$/i, "");
+    $("#dlCoverGame").textContent = it.game || "未标注游戏";
+    $("#dlCoverTrack").textContent = nm || "正在播放";
+  });
+
+  /* audio 的 play/pause/error/timeupdate/ended 事件已全部由内核接管并向
+     state 转发（见上面的 PL.on("state")）。这里不再挂任何 audio.on*。 */
 
   // ── 状态渲染 ──────────────────────────────────────────
   /* 当前「默认」输出格式（"WAV" / "FLAC" / "MP3"），给行内那颗按钮和各种文案用。
@@ -1322,15 +1081,8 @@
 
     $("#dlLogClear").onclick = () => { $("#dlLog").innerHTML = ""; };
 
-    // 试听：播放/暂停那颗按钮只作用于「当前选中的那首」
-    $("#dlPlayBtn").onclick = () => {
-      if (!S.playRel) return;
-      if (audio.paused) audio.play().catch(() => {});
-      else audio.pause();
-    };
-    /* v6.0.3：上一曲 / 下一曲 */
-    $("#dlPrev").onclick = () => stepTrack(-1);
-    $("#dlNext").onclick = () => stepTrack(1);
+    /* 播放 / 上一曲 / 下一曲：按钮本体已由 PlayerView 渲染，
+       绑定在 player/ui.js 里，这里不再有 #dlPlayBtn / #dlPrev / #dlNext。 */
     $("#dlPlayRefresh").onclick = () => {
       S.wavSig = null;               // 强制重建列表
       loadWavs(true);
@@ -1346,14 +1098,7 @@
       if (!d.ok) { toast(d.error || "清空失败"); return; }
       /* 正在放的那首被清掉了 —— 停下来。不停的话播放条会对着一个
          列表里已经不存在的曲目继续走，看着像卡住。 */
-      audio.pause();
-      S.playRel = "";
-      $("#dlPlayBar").style.width = "0%";
-      $("#dlPlayKnob").style.left = "0%";
-      $("#dlPlayTime").textContent = "0:00";
-      $("#dlPlayName").textContent = "还没有转出的音频";
-      $("#dlPlayBtn").disabled = true;
-      syncSkipBtns();                // v6.0.3：没当前曲目了，上/下一曲跟着灰
+      PL.clear();                    /* 停播 + 清空 state，播放器回到空态 */
       S.wavSig = null;               // 强制重建（否则签名没变会直接 return）
       await loadWavs(true);
       toast(d.hidden
@@ -1575,6 +1320,7 @@
   // ── 启动 ──────────────────────────────────────────────
   async function boot() {
     viz.init();          /* 频谱开关 + 空态；AudioContext 留到第一次播放再建 */
+    PL.mount($("#pvHost"));   /* 播放器挂载（皮肤由 rml-player-skin 决定） */
     initCols();          /* v6.0.1：列宽拖拽把手 */
     bind();
     await loadPlatforms();

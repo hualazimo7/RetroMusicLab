@@ -169,6 +169,12 @@ window.VizKit = (function () {
         V.ctx = ctx; V.src = src; V.an = an;
         V.freq = new Uint8Array(an.frequencyBinCount);
         V.wave = new Uint8Array(an.fftSize);
+        /* 把分析节点交给播放器内核借用：皮肤要频谱，但
+           createMediaElementSource 对同一个 audio 只能调一次 ——
+           谁先建谁持有，这里建完把引用递过去，内核**不再重复建**。 */
+        if (window.PlayerCore && window.PlayerCore.attachAnalyser) {
+          window.PlayerCore.attachAnalyser(an, ctx);
+        }
         return true;
       } catch (e) {
         V.ctx = V.src = V.an = null;
