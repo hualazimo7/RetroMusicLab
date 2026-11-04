@@ -40,5 +40,8 @@ msu1-to-cd/bios/
 # 单实例运行锁（<pid> <次> <时间戳>），冒烟/实跑都会生成
 msu1-to-cd/.running
 
+# ---- 原型截图输出（docs/deck/tools/shot_aura.py 生成）----
+docs/deck/shots/
+
 # ---- 本机 AI 记忆（含个人路径，不入公开库）----
 .workbuddy-ai/
