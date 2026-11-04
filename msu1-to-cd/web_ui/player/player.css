@@ -1,0 +1,126 @@
+/* player.css —— 播放器容器与共用控件（两套皮肤都依赖）
+ *
+ * 容器契约（方案 §3.2）：
+ *   宽 ≥ 460px → wide（横条）：签名块 + 信息 + 传输控件 一行排开
+ *   宽 <  460px → narrow（竖栏）：签名块独立一行，信息与控件在下
+ * 形态判定只看宽度，因为两页的实际宽度差一个量级（全宽 vs 356）。
+ */
+.pv {
+  container-type: size;
+  position: relative;
+  box-sizing: border-box;
+  min-height: 0;
+  --pv-fg: var(--text, #F2F2F6);
+  --pv-dim: color-mix(in srgb, var(--text, #F2F2F6) 62%, transparent);
+  --pv-line: var(--border, rgba(255, 255, 255, .08));
+  --pv-accent: var(--accent, #8B5CF6);
+  --pv-accent-soft: var(--accent-soft, rgba(139, 92, 246, .16));
+  color: var(--pv-fg);
+  font-family: var(--font, "Segoe UI", system-ui, sans-serif);
+}
+
+/* --dot-pitch 必须声明在容器的**后代**上：container 查询不能给容器自身设值 */
+.pv-body {
+  --dot-pitch: 11px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  height: 100%;
+  padding: 12px 16px;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.pv-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+
+.pv-title {
+  font-size: 14px; font-weight: 500; line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pv-title.is-missing { color: #E24B4A; }
+.pv-sub {
+  font-size: 11px; line-height: 1.2; color: var(--pv-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.pv-track {
+  position: relative; height: 6px; border-radius: 3px;
+  background: color-mix(in srgb, var(--pv-fg) 12%, transparent);
+  cursor: pointer; touch-action: none;
+}
+.pv-track.is-unknown { cursor: default; opacity: .5; }
+.pv-fill {
+  position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 3px;
+  background: linear-gradient(90deg, var(--pv-accent), #22D3EE);
+}
+.pv-knob {
+  position: absolute; top: 50%; left: 0; width: 10px; height: 10px;
+  margin-left: -5px; transform: translateY(-50%);
+  border-radius: 50%; background: #fff;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--pv-accent) 60%, transparent);
+  opacity: 0; transition: opacity 120ms;
+}
+.pv-track:hover .pv-knob { opacity: 1; }
+
+.pv-time {
+  font-family: var(--mono, ui-monospace, Consolas, monospace);
+  font-size: 11px; color: var(--pv-dim); letter-spacing: .02em;
+}
+
+.pv-ctrl { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; }
+
+.pv-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; padding: 0; border-radius: 50%;
+  border: 1px solid var(--pv-line);
+  background: color-mix(in srgb, var(--pv-fg) 6%, transparent);
+  color: inherit; cursor: pointer; transition: background var(--fast, 120ms), opacity 120ms;
+}
+.pv-btn svg { width: 16px; height: 16px; }
+.pv-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--pv-fg) 12%, transparent); }
+.pv-btn:disabled { opacity: .32; cursor: default; }
+.pv-btn--play {
+  width: 38px; height: 38px;
+  border-color: transparent;
+  background: var(--pv-accent);
+  color: #fff;
+}
+.pv-btn--play:hover:not(:disabled) { background: color-mix(in srgb, var(--pv-accent) 82%, #fff); }
+.pv-btn--skin {
+  width: auto; height: 26px; padding: 0 10px; border-radius: 13px;
+  font-size: 11px; letter-spacing: .02em;
+}
+
+.pv-vol {
+  width: 76px; height: 4px; margin: 0 2px;
+  -webkit-appearance: none; appearance: none;
+  background: color-mix(in srgb, var(--pv-fg) 16%, transparent);
+  border-radius: 2px; cursor: pointer;
+}
+.pv-vol::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 11px; height: 11px; border-radius: 50%;
+  background: var(--pv-fg); border: none;
+}
+
+/* ── 窄容器（下载页 356 栏）────────────────────────
+ * 300px 高要同时装下 [签名块][信息][控件]：
+ *   签名块（点阵 26×16 @9px = 234×144 + 内边距）≈160
+ *   信息 50 + 控件 38 + 间距 16 + 内边距 20 ≈ 124
+ * 所以窄版必须收窄点阵间距，并隐藏副标题腾出空间。 */
+@container (max-width: 460px) {
+  .pv-body {
+    --dot-pitch: 9px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px;
+  }
+  .pv-sub { display: none; }
+  /* 300px 高装不下 300px 的内容（签名块高度固定），剩余空间给 main；
+     让内容组在剩余空间里居中，否则标题会贴着签名块、底部空出一大块。 */
+  .pv-main { gap: 5px; justify-content: center; }
+  .pv-ctrl { justify-content: center; }
+  .pv-vol { width: 60px; }
+  .pv-time { text-align: right; }
+}

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>PlayerView 契约验证（P0′）</title>
+<link rel="stylesheet" href="player.css">
+<link rel="stylesheet" href="skin_deck.css">
+<link rel="stylesheet" href="skin_aurora.css">
+<style>
+  :root {
+    --bg: #09090C; --surface: #111116; --surface-hi: #262630;
+    --border: rgba(255,255,255,.062); --text: #F2F2F6;
+    --accent: #8B5CF6; --accent-soft: rgba(139,92,246,.16);
+    --mono: "Cascadia Code", Consolas, monospace;
+    --font: "Segoe UI", system-ui, sans-serif;
+    --fast: 120ms;
+  }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); }
+  #bar { display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 12px; }
+  #bar b { font-weight: 500; opacity: .7; margin-right: 6px; }
+  #bar button { font: inherit; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border); background: #ffffff0d; color: inherit; cursor: pointer; }
+  #bar button.on { background: var(--accent); border-color: transparent; color: #fff; }
+  #stage { padding: 18px 14px; display: flex; flex-direction: column; gap: 18px; }
+  .slot { border: 1px dashed #ffffff1f; border-radius: 10px; overflow: hidden; }
+  .slot > .cap { font-size: 11px; opacity: .5; padding: 6px 10px; }
+  #wide  { width: 100%; height: 200px; }
+  #narrow { width: 356px; height: 300px; }
+</style>
+</head>
+<body>
+<div id="bar">
+  <b>皮肤</b>
+  <button id="btnDeck" class="on">磁带机</button>
+  <button id="btnAurora">极光</button>
+  <b style="margin-left:14px">容器</b>
+  <button id="btnWide" class="on">wide 全宽×200</button>
+  <button id="btnNarrow">narrow 356×300</button>
+</div>
+
+<div id="stage">
+  <div class="slot"><div class="cap">转换页 dock：全宽 × 200（wide）</div><div id="wide"></div></div>
+  <div class="slot"><div class="cap">下载页右栏：356 × 300（narrow）</div><div id="narrow"></div></div>
+</div>
+
+<script src="player_core.js"></script>
+<script src="sources.js"></script>
+<script src="ui.js"></script>
+<script src="deck_physics.js"></script>
+<script src="level_scale.js"></script>
+<script src="aurora_theme.js"></script>
+<script src="skin_deck.js"></script>
+<script src="skin_aurora.js"></script>
+<script>
+/* 造一段 3 分 15 秒的静音 WAV，让 demo 有真实 duration，不依赖外部文件 */
+function silentWav(sec, rate) {
+  rate = rate || 8000;
+  var n = sec * rate, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  function str(o, s) { for (var i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); }
+  str(0, "RIFF"); v.setUint32(4, 36 + n * 2, true); str(8, "WAVE");
+  str(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  str(36, "data"); v.setUint32(40, n * 2, true);
+  return URL.createObjectURL(new Blob([buf], { type: "audio/wav" }));
+}
+
+var TRACKS = [
+  { id: 1, name: "01_Town_Square.wav", size: 3.4e6, url: silentWav(195) },
+  { id: 2, name: "02_Bombing_Mission.wav", size: 4.1e6, url: silentWav(248) },
+  { id: 3, name: "03_Opening_Theme.wav", size: 2.9e6, url: silentWav(132) }
+];
+
+var src = PlayerSources.converter({ outputs: function () { return TRACKS; } });
+src.urlOf = function (o) { return o.url; };   /* demo 用 Blob，真实页面走 /api/audio */
+
+PlayerCore.init({ source: src });
+PlayerCore.setVolume(0.62);
+
+var wideEl = document.getElementById("wide");
+var narrowEl = document.getElementById("narrow");
+var current = "wide";
+
+function mountInto(id) {
+  current = id;
+  PlayerCore.mount(document.getElementById(id === "wide" ? "wide" : "narrow"));
+  PlayerCore.load("id:2", false);   /* 选中第 2 首，但不自动播 */
+  PlayerCore.seek(62);
+}
+
+/* 只让选中的容器有内容 */
+function clearOther(sel) {
+  var other = sel === "#wide" ? narrowEl : wideEl;
+  other.innerHTML = "";
+}
+
+document.getElementById("btnDeck").onclick = function () {
+  document.getElementById("btnDeck").classList.add("on");
+  document.getElementById("btnAurora").classList.remove("on");
+  PlayerCore.setSkin("deck");
+};
+document.getElementById("btnAurora").onclick = function () {
+  document.getElementById("btnAurora").classList.add("on");
+  document.getElementById("btnDeck").classList.remove("on");
+  PlayerCore.setSkin("aurora");
+};
+document.getElementById("btnWide").onclick = function () {
+  document.getElementById("btnWide").classList.add("on");
+  document.getElementById("btnNarrow").classList.remove("on");
+  clearOther("#wide"); mountInto("wide");
+};
+document.getElementById("btnNarrow").onclick = function () {
+  document.getElementById("btnNarrow").classList.add("on");
+  document.getElementById("btnWide").classList.remove("on");
+  clearOther("#narrow"); mountInto("narrow");
+};
+
+mountInto("wide");
+window.__demo = { core: PlayerCore, mountInto: mountInto, clearOther: clearOther };
+</script>
+</body>
+</html>

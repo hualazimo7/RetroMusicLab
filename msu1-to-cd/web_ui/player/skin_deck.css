@@ -1,0 +1,177 @@
+/* skin_deck.css —— 磁带机皮肤
+ * 材质取自 Re:Play 的机身渐变（replay-逆向分析 §6.4）：深褐金属 + 内阴影 + 一圈亮边
+ *
+ * 卷盘的盘径与角度不在这里定：由 skin_deck.js 每帧写 --r / --a 两个变量
+ * （物理见 deck_physics.js）。CSS 只负责「长什么样」。
+ */
+
+.dk-chassis {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid #373632;
+  background: linear-gradient(115deg, #625f56, #46453f 48%, #34352f);
+  box-shadow: inset 0 1px 1px #a7a29326, inset 0 -2px 3px #1d1e1b, 0 2px 3px #0006;
+}
+
+.dk-window {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: linear-gradient(#17120e, #241a13);
+  box-shadow: inset 0 0 14px #000a, inset 0 0 0 1px #00000055;
+}
+
+/* ── 卷盘 ────────────────────────────────────────────────
+ * 四层：
+ *   .dk-reel  井（不转）—— 深色底，光不该跟着转
+ *   .dk-spin  旋转层（--a）—— 带盘与轮毂一起转
+ *   .dk-pack  带盘（--r 控制直径）—— 纯色环，转过看不出接缝，符合实物
+ *   .dk-hub   轮毂 —— 六齿，转动就是在这一层看出来
+ */
+.dk-reel {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 42%, #201813, #100b08 72%, #060403);
+  box-shadow:
+    inset 0 0 0 1px #000000aa,
+    inset 0 3px 8px #000c,
+    0 1px 2px #0007;
+}
+/* 井口的静态高光：画在旋转层之上，且自己不转 */
+.dk-reel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 26%, #ffffff1f, #ffffff00 52%);
+  pointer-events: none;
+}
+
+.dk-spin {
+  position: absolute;
+  inset: 0;
+  transform: rotate(var(--a, 0deg));
+  will-change: transform;
+}
+
+/* 带盘：直径 = 半径比 × 92%（留一圈井壁，盘再满也不贴边） */
+.dk-pack {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--r, 1) * 92%);
+  height: calc(var(--r, 1) * 92%);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  /* 必须**旋转对称**：带盘本身就是均匀的。旧写法在盘上放了偏心高光，
+     一转就像有束光跟着转，很假。
+     两层：细密同心圆 = 绕带的层纹；径向渐变 = 盘面的厚度感。
+     层纹对比刻意压得很低（#ffffff08），否则缩到 40px 会出摩尔纹。 */
+  background-color: #3d2b1b;
+  background-image:
+    repeating-radial-gradient(circle, #ffffff0a 0 1px, #00000000 1px 3px),
+    radial-gradient(circle at 42% 36%, #553e26, #3c2b1b 72%, #2f2114);
+  box-shadow:
+    inset 0 0 0 1px #00000088,
+    inset 0 0 6px #00000066,
+    0 1px 3px #0008;
+}
+
+.dk-hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 34%;
+  height: 34%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  /* 六齿（60° 一个周期）：这是唯一能看出「正在转」的地方 */
+  background: repeating-conic-gradient(from 0deg,
+    #d9b23a 0 16deg,
+    #95761f 16deg 30deg,
+    #2b2118 30deg 60deg);
+  box-shadow: inset 0 0 0 1px #00000099, 0 0 8px #c9a2273d;
+}
+/* 中心孔 */
+.dk-hub::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 30%;
+  height: 30%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #16100a;
+  box-shadow: inset 0 0 0 1px #000000cc;
+}
+
+/* 两盘之间的磁带走带：深褐，不是金色 ——
+   金色细线看着像一根铁丝，磁带本身是深褐的氧化铁涂层。 */
+.dk-tape {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 36px;
+  height: 3px;
+  margin: -1.5px 0 0 -18px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, #2e2317, #6b5236 50%, #2e2317);
+  box-shadow: 0 1px 0 #00000059;
+}
+
+.dk-plate {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.dk-brand {
+  font-size: 9px;
+  letter-spacing: .18em;
+  color: #beb5a0;
+  text-shadow: 0 1px #222;
+}
+/* 磁带贴纸：不画图，只用条纹表达"盘里有东西"（封面由页面负责） */
+.dk-strip {
+  display: block;
+  width: 64px;
+  height: 22px;
+  border-radius: 3px;
+  background:
+    repeating-linear-gradient(135deg, #c9a2272e 0 3px, transparent 3px 7px),
+    linear-gradient(#2a211a, #1a1512);
+  box-shadow: inset 0 0 0 1px #00000066;
+}
+
+/* ── 窄容器：竖置卡座 ─────────────────────────────── */
+@container (max-width: 460px) {
+  /* 竖栏高度固定 300px，卡座吃满剩余高度：真机就是这个样子
+     —— 机箱填满面板，窗口在上、标签在下。信息区不再抢高度。 */
+  .dk-chassis {
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+  .pv--deck .pv-main { flex: 0 0 auto; }
+  /* 黑窗跟着机箱一起长：只拉机箱不拉窗，中间会空出一大块褐色空白，
+     看着像「机箱坏了」。窗口占满、卷盘随之放大才是真机的比例。 */
+  .dk-window { flex: 1 1 auto; justify-content: center; gap: 24px; padding: 6px 10px; }
+  .dk-reel { width: 64px; height: 64px; }
+  .dk-tape { width: 24px; margin-left: -12px; }
+  .dk-plate { flex-direction: row; align-items: center; justify-content: space-between; }
+  .dk-strip { width: 50%; height: 16px; }
+}

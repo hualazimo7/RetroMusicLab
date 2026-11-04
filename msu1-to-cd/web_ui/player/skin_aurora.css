@@ -1,0 +1,233 @@
+/* skin_aurora.css —— 极光皮肤
+ * 点阵几何按实测（方案 §3.3）：26 列 × 16 行，--dot-pitch 由 player.css 给（11px / 9px）
+ *
+ * 三层结构（从下到上）：
+ *   .au-mat    材质底层（模糊材质要 clip，所以单独一层，不裁面板本身）
+ *   .au-ring   氛围环画布（沿面板周界描边，颜色/透明度由 aurora_theme 算）
+ *   .au-matrix + .au-tools  内容
+ */
+
+.au-panel {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  box-shadow:
+    inset 0 0 0 1px #ffffff0f,
+    inset 0 1px 0 #ffffff14,
+    0 4px 14px #0006;
+}
+
+/* 材质底层：**只裁自己**，不裁面板 —— 设置弹层挂在 body 上，
+   但面板内的元素也不该被这一层挡住（z-index 0）。 */
+.au-mat {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* 氛围环画布：铺满面板，画在材质之上、内容之下 */
+.au-ring {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* 26 × 16 的屏：尺寸由 --dot-pitch 决定，canvas 自己按 DPR 放大内部分辨率。 */
+.au-matrix {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: calc(26 * var(--dot-pitch));
+  height: calc(16 * var(--dot-pitch));
+  border-radius: 6px;
+  background: #0a0a0d;
+  box-shadow:
+    inset 0 0 0 1px #ffffff0d,
+    inset 0 2px 10px #000000cc,
+    0 1px 0 #ffffff08;
+}
+
+.au-tools {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 点阵 / 柱状切换 + 设置：两颗同尺寸的小徽标 */
+.au-mode,
+.au-gear {
+  min-width: 34px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 12px;
+  border: 1px solid #ffffff1a;
+  background: #ffffff0a;
+  color: #cfc9e8;
+  font-size: 10px;
+  letter-spacing: .04em;
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 120ms, border-color 120ms, color 120ms;
+}
+.au-mode:hover,
+.au-gear:hover {
+  background: #ffffff14;
+  border-color: #ffffff2e;
+  color: #fff;
+}
+.au-mode:active,
+.au-gear:active { background: #ffffff1f; }
+
+/* ── 三档材质 ─────────────────────────────────────────
+ * 亮面玻璃：深色玻璃 + 顶部一道亮边 + 斜向反光
+ * 金属面板：拉丝纹（1px 竖线）+ 更强的上边缘高光
+ * 封面模糊背景：封面图放大模糊后压暗，没有封面时回落到渐变 */
+.au-panel[data-mat="glass"] {
+  background: linear-gradient(160deg, #1b1b23, #0d0d12 58%, #09090d);
+}
+.au-panel[data-mat="glass"] .au-mat::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, #ffffff12 0%, #ffffff00 38%, #ffffff00 62%, #ffffff08 100%);
+}
+
+.au-panel[data-mat="metal"] {
+  background:
+    repeating-linear-gradient(90deg, #ffffff07 0 1px, #ffffff00 1px 3px),
+    linear-gradient(180deg, #26282e, #16181d 56%, #0e1013);
+  box-shadow:
+    inset 0 0 0 1px #ffffff12,
+    inset 0 1px 0 #ffffff33,
+    inset 0 -1px 0 #00000099,
+    0 4px 14px #0007;
+}
+.au-panel[data-mat="metal"] .au-mat::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #ffffff10, #ffffff00 24%, #00000000 76%, #00000040);
+}
+
+.au-panel[data-mat="blur"] {
+  background: #0b0b10;
+}
+.au-panel[data-mat="blur"] .au-mat::before {
+  content: "";
+  position: absolute;
+  inset: -14px;
+  background-image: var(--au-cover, linear-gradient(135deg, #2b1d42, #0f2f3d));
+  background-size: cover;
+  background-position: center;
+  filter: blur(14px) brightness(.46) saturate(1.25);
+}
+/* 模糊层之上压一层暗罩，保证点阵与文字始终可读 */
+.au-panel[data-mat="blur"] .au-mat::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, #06060a66, #06060a99);
+}
+
+/* ── 设置弹层（挂在 body 上，不受面板裁剪）────────── */
+.au-pop {
+  position: fixed;
+  z-index: 9999;
+  width: 272px;
+  padding: 10px 11px;
+  border-radius: 10px;
+  border: 1px solid #ffffff1f;
+  background: #16161e;
+  box-shadow: 0 14px 36px #000a, inset 0 1px 0 #ffffff14;
+  color: #d9d5e6;
+  font-family: var(--font, "Segoe UI", system-ui, sans-serif);
+}
+.au-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.au-row:last-child { margin-bottom: 0; }
+.au-row-k {
+  flex: 0 0 58px;
+  padding-top: 3px;
+  font-size: 10.5px;
+  color: #9791a8;
+  letter-spacing: .02em;
+}
+.au-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.au-chip {
+  padding: 3px 7px;
+  border-radius: 6px;
+  border: 1px solid #ffffff14;
+  background: #ffffff08;
+  color: #cfc9e8;
+  font-size: 10px;
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 100ms, border-color 100ms, color 100ms;
+}
+.au-chip:hover { background: #ffffff16; border-color: #ffffff26; }
+.au-chip.on {
+  border-color: #8b7cf6;
+  background: #8b7cf633;
+  color: #fff;
+}
+
+/* 播放中：整块屏极轻地呼吸一下，暗示「它是活的」。
+   幅度压到 0.92（不是 0.55）—— 点阵本身已经在闪，屏再大幅明暗会喧宾夺主。 */
+@keyframes au-breathe { 0%, 100% { opacity: .92 } 50% { opacity: 1 } }
+.pv--aurora.is-playing .au-matrix { animation: au-breathe 3.6s ease-in-out infinite; }
+
+/* ── 窄容器：竖版面板（封面不进播放器，见 §5.3.3）──── */
+@container (max-width: 460px) {
+  .au-panel {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+  }
+  .au-matrix { align-self: center; }
+  /* 工具行**不占排**：300px 高要同时装 [点阵 144][信息 50][控件 38] + 间距内边距，
+     工具行再独占一行就会把 .pv-ctrl 顶出面板 2px（播放键底部被裁）。
+     改成浮在面板右侧空白 —— 矩阵 234 居中后右侧还剩 40px，34px 宽的竖排刚好，
+     不遮点阵，也不改矩阵尺寸（点阵间距是 level_scale.test.js 读 CSS 校验的）。 */
+  .au-tools {
+    position: absolute;
+    top: 8px;
+    right: 6px;
+    flex-direction: column;
+    gap: 4px;
+  }
+  /* 竖排按钮里不许折行：30px 宽、9px 字，「点阵」两个字正好卡在临界，
+     不加 nowrap 会被压成「点 / 阵」上下两行，20px 高装不下就往面板外顶。 */
+  .au-mode, .au-gear {
+    height: 20px; min-width: 36px; padding: 0 4px; font-size: 9px;
+    white-space: nowrap;
+  }
+}
+
+/* 尊重系统设置：不呼吸，但点阵仍照常反映频谱 */
+@media (prefers-reduced-motion: reduce) {
+  .pv--aurora.is-playing .au-matrix { animation: none; }
+}
