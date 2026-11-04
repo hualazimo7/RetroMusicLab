@@ -39,6 +39,11 @@ msu1-to-cd/bios/
 *.log
 # 单实例运行锁（<pid> <次> <时间戳>），冒烟/实跑都会生成
 msu1-to-cd/.running
+# PSF 播放用的 BIOS 路径（一行本机绝对路径）。程序自己会写，换台机器就失效，
+# 入库只会让每次提交都多一个「要记得还原」的噪声。
+# 查找优先级见 psf_native.find_bios()：环境变量 MSU1_PSF_BIOS > 本文件 >
+# 程序目录 bios/ > 常见模拟器目录。文件不在也能正常跑。
+msu1-to-cd/psf_bios.txt
 
 # ---- 原型截图输出（docs/deck/tools/shot_aura.py 生成）----
 docs/deck/shots/
