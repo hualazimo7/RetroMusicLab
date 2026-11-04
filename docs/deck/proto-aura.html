@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>极光 · 声光外观原型（非产品代码）</title>
+<style>
+  /* ── 原型用途：验证「点阵频谱 + 边框辉光」的可行性与手感 ─────────────────
+     0 位图。所有材质由 CSS 渐变 / 内联 SVG 噪声生成。
+     这是方案验证件，不是产品代码；正式实现落在 web_ui/ 里。 */
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    background: #06070A;
+    color: #E9E5DC;
+    font: 13px/1.55 "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    display: flex;
+    gap: 26px;
+    padding: 26px 30px 30px;
+    align-items: flex-start;
+    width: 1180px;          /* 设计稿宽度，避免弹性布局在小窗口塌陷 */
+  }
+
+  /* ══ 左：控制台（对应截图里的五行设置） ══════════════════════════════ */
+  .ctrl {
+    width: 252px;
+    flex: none;
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, .045), rgba(255, 255, 255, .012));
+    padding: 16px 15px 18px;
+  }
+
+  .ctrl h2 {
+    margin: 0 0 14px;
+    font-size: 11px;
+    letter-spacing: .16em;
+    font-weight: 600;
+    color: #8E8578;
+    text-transform: uppercase;
+  }
+
+  .grp { margin-bottom: 15px; }
+  .grp:last-child { margin-bottom: 4px; }
+
+  .grp > .lab {
+    display: block;
+    font-size: 11.5px;
+    color: #8E8578;
+    margin-bottom: 6px;
+    letter-spacing: .04em;
+  }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+
+  .chip {
+    appearance: none;
+    border: 1px solid rgba(255, 255, 255, .13);
+    background: rgba(255, 255, 255, .028);
+    color: #B7B0A3;
+    font: inherit;
+    font-size: 11.5px;
+    line-height: 1;
+    padding: 6px 9px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: border-color .15s, color .15s, background .15s;
+    white-space: nowrap;
+  }
+
+  .chip:hover { border-color: rgba(232, 178, 58, .45); color: #DCD4C4; }
+
+  .chip[aria-pressed="true"] {
+    border-color: #E8B23A;
+    background: rgba(232, 178, 58, .14);
+    color: #F7DE8E;
+    box-shadow: 0 0 0 1px rgba(232, 178, 58, .18), 0 0 10px rgba(232, 178, 58, .14);
+  }
+
+  .chip.dark { border-style: dashed; }
+
+  .hint {
+    margin: 14px 0 0;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #6F685D;
+    border-top: 1px solid rgba(255, 255, 255, .06);
+    padding-top: 11px;
+  }
+
+  .hint b { color: #A79C88; font-weight: 600; }
+
+  /* ══ 右：舞台 ═══════════════════════════════════════════════════════ */
+  .stage {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px 52px;   /* 留出辉光外溢的空间 */
+  }
+
+  /* ── 面板本体 ─────────────────────────────────────────────────────── */
+  .panel {
+    position: relative;
+    width: 700px;
+    height: 386px;
+    border-radius: 17px;
+    isolation: isolate;
+    /* 不写 overflow:hidden —— 会把外溢的辉光裁掉 */
+  }
+
+  /* 外辉光：模糊层，视觉上从面板边缘溢出去。
+     范围要克制 —— 参考产品的辉光是紧贴边框的一圈柔光，
+     扩散过大就变成一层雾，边框描边会被淹没。 */
+  .aura {
+    position: absolute;
+    inset: -15px;
+    border-radius: 30px;
+    filter: blur(24px);
+    opacity: var(--glow, .55);
+    z-index: 0;
+    pointer-events: none;
+    contain: strict;
+  }
+
+  .aura > i {
+    position: absolute;
+    inset: -6%;
+    display: block;
+    background: var(--aura-bg);
+  }
+
+  /* 动态 = 呼吸：纯 CSS，零 JS */
+  .panel[data-dyn="breathe"] .aura {
+    animation: breathe 3.8s ease-in-out infinite;
+  }
+
+  /* 动态 = 环绕：旋转一个放大的渐变层，transform 走合成器，零重绘 */
+  .panel[data-dyn="circle"] .aura > i {
+    animation: spin 13s linear infinite;
+  }
+
+  @keyframes breathe {
+    0%, 100% { opacity: var(--glow, .55); }
+    50%      { opacity: calc(var(--glow, .55) * .38); }
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* 面板底色：接近不透明。alpha 太低会让外辉光透进来，整块面板发灰 */
+  .surface {
+    position: absolute;
+    inset: 0;
+    border-radius: 17px;
+    z-index: 1;
+    overflow: hidden;
+    background: var(--surf-bg);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07);
+  }
+
+  /* 亮面玻璃：一道斜向高光 + 顶部亮边 */
+  .panel[data-mat="glass"] .surface::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(157deg,
+      rgba(255, 255, 255, .075) 0%,
+      rgba(255, 255, 255, .015) 26%,
+      transparent 47%);
+    pointer-events: none;
+  }
+
+  /* 金属磨砂：内联 SVG 噪声（0 位图），叠在底色上做细腻颗粒 */
+  .panel[data-mat="metal"] .surface::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: .5;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+
+  /* 边框描边：padding + mask 抠出来的 1.5px 环 */
+  .ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 17px;
+    padding: 1.5px;
+    z-index: 4;
+    background: var(--ring-bg);
+    opacity: var(--ring-op, .8);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* 点阵画布：必须靠外层容器定尺寸。
+     canvas 是替换元素，绝对定位四边 inset + width:auto 不会拉伸，
+     它会退回固有像素尺寸 —— 这正是首版点阵挤在上半部分的真正原因。 */
+  .dotbox {
+    position: absolute;
+    inset: 44px 30px 58px 30px;
+    z-index: 2;
+  }
+
+  .dotbox canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .tag {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    z-index: 3;
+    font-size: 10.5px;
+    letter-spacing: .05em;
+    color: rgba(233, 229, 220, .5);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .tag b {
+    color: var(--tag-a, #7FE3B0);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .tag b::before {
+    content: "";
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 7px currentColor;
+  }
+
+  .title {
+    position: absolute;
+    top: 16px;
+    left: 22px;
+    z-index: 3;
+    font-size: 15px;
+    letter-spacing: .02em;
+    color: rgba(233, 229, 220, .82);
+  }
+
+  .title span { color: rgba(233, 229, 220, .38); }
+
+  /* 底部信息条：四栏，像截图那样 */
+  .meta {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 46px;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, .065);
+    background: rgba(0, 0, 0, .22);
+    border-radius: 0 0 17px 17px;
+    padding: 0 4px;
+  }
+
+  .meta span {
+    flex: 1;
+    padding-left: 18px;
+    font-size: 12px;
+    color: rgba(233, 229, 220, .72);
+    letter-spacing: .01em;
+  }
+
+  .meta i {
+    display: block;
+    font-style: normal;
+    font-size: 9.5px;
+    letter-spacing: .1em;
+    color: rgba(233, 229, 220, .34);
+    margin-bottom: 1px;
+  }
+
+  /* 待机态：整体压暗，但不隐藏 —— 结构还在 */
+  .panel[data-live="0"] .surface { filter: brightness(.84); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .aura, .aura > i { animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- ══ 控制台 ══ -->
+  <aside class="ctrl">
+    <h2>声光外观</h2>
+
+    <div class="grp">
+      <span class="lab">透光</span>
+      <div class="chips" data-key="glow">
+        <button class="chip" data-v="off">关闭</button>
+        <button class="chip" data-v="low">低</button>
+        <button class="chip" data-v="mid">中</button>
+        <button class="chip" data-v="high">高</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <span class="lab">频谱灯光</span>
+      <div class="chips" data-key="light">
+        <button class="chip" data-v="copper">复古铜色</button>
+        <button class="chip" data-v="gold">金色</button>
+        <button class="chip" data-v="silver">冷银</button>
+        <button class="chip" data-v="cyber">赛博霓虹</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <span class="lab">氛围灯颜色</span>
+      <div class="chips" data-key="ambient">
+        <button class="chip" data-v="off">关闭</button>
+        <button class="chip" data-v="gold">金色</button>
+        <button class="chip" data-v="green">冷绿</button>
+        <button class="chip" data-v="ice">冰蓝</button>
+        <button class="chip" data-v="violet">紫罗兰</button>
+        <button class="chip" data-v="rainbow">彩虹</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <span class="lab">氛围灯动态</span>
+      <div class="chips" data-key="dyn">
+        <button class="chip" data-v="static">静态</button>
+        <button class="chip" data-v="breathe">呼吸</button>
+        <button class="chip" data-v="pulse">律动</button>
+        <button class="chip" data-v="circle">环绕</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <span class="lab">面板材质</span>
+      <div class="chips" data-key="mat">
+        <button class="chip" data-v="glass">亮面玻璃</button>
+        <button class="chip" data-v="metal">金属磨砂</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <span class="lab">播放状态（原型开关）</span>
+      <div class="chips" data-key="live">
+        <button class="chip" data-v="1">播放中</button>
+        <button class="chip" data-v="0">待机</button>
+      </div>
+    </div>
+
+    <p class="hint">
+      点阵<b>按行分层</b>取色：底 3 行、中 5 行、顶 6 行。<br>
+      熄灯点不透明，网格本身是构图的一部分。<br>
+      待机态不伪造振幅，只留网格。
+    </p>
+  </aside>
+
+  <!-- ══ 舞台 ══ -->
+  <main class="stage">
+    <div class="panel" id="panel" data-mat="glass" data-dyn="breathe" data-live="1">
+      <div class="aura"><i></i></div>
+      <div class="surface"></div>
+      <div class="title">光谱演示 <span>· Original Signal</span></div>
+      <div class="tag"><b>实时音源</b>· 44100 Hz</div>
+      <div class="dotbox"><canvas id="dots"></canvas></div>
+      <div class="meta">
+        <span><i>格式</i>WAV</span>
+        <span><i>采样率</i>44100 Hz</span>
+        <span><i>位深</i>16-bit</span>
+        <span><i>来源</i>本地</span>
+      </div>
+      <div class="ring"></div>
+    </div>
+  </main>
+
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  /* ══════════════════════════════════════════════════════════════════
+     1. 配色表 —— 灯光管点阵与边框，氛围管外溢辉光。两者职责不交叉。
+     ══════════════════════════════════════════════════════════════════ */
+  const LIGHTS = {
+    copper: { bands: ["#8A5A32", "#C98B4E", "#F2C48F"], ring: ["#8A5A32", "#F2C48F"], tag: "#F2C48F" },
+    gold:   { bands: ["#8C6A16", "#D9A521", "#F9E29A"], ring: ["#7A5A18", "#F9E29A"], tag: "#F7DE8E" },
+    /* 冷银必须带明确的蓝调。纯中性的银和白灰网格同色相，
+       只靠亮度差根本分不开 —— 整片点阵会看成「都没亮」。 */
+    silver: { bands: ["#7091AE", "#A3C0D6", "#E2F0FC"], ring: ["#4E6E8A", "#E2F0FC"], tag: "#DCEDFB" },
+    /* 赛博霓虹的边框是冷暖交错的 —— 左青右洋红，这是它与前三者的关键差别 */
+    cyber:  { bands: ["#FF2D95", "#FFD93D", "#22E0FF"], ring: ["#22E0FF", "#FF2D95"], tag: "#7FE3D8" }
+  };
+
+  const AMBIENT = {
+    off:     null,
+    gold:    "#E8B23A",
+    green:   "#4FE08A",
+    ice:     "#4FB8FF",
+    violet:  "#A97BFF",
+    rainbow: "conic"
+  };
+
+  const GLOW = { off: 0, low: .3, mid: .58, high: .96 };
+  const RING_OP = { off: .36, low: .62, mid: .88, high: 1 };
+
+  const st = {
+    glow: "mid", light: "gold", ambient: "gold",
+    dyn: "breathe", mat: "glass", live: "1"
+  };
+
+  const panel = document.getElementById("panel");
+
+  /* ══════════════════════════════════════════════════════════════════
+     2. 主题写入 —— 全部落到 4 个 CSS 变量上
+     ══════════════════════════════════════════════════════════════════ */
+  function applyTheme() {
+    const L = LIGHTS[st.light];
+    const amb = AMBIENT[st.ambient];
+
+    panel.dataset.mat = st.mat;
+    panel.dataset.dyn = st.dyn;
+    panel.dataset.live = st.live;
+
+    /* 边框渐变 */
+    let ringBg;
+    if (st.ambient === "rainbow") {
+      ringBg = "conic-gradient(from 210deg, #FF2D95, #FFD93D, #4FE08A, #22E0FF, #A97BFF, #FF2D95)";
+    } else if (!amb) {
+      ringBg = `linear-gradient(100deg, ${L.ring[0]}, ${L.ring[1]} 55%, ${L.ring[0]})`;
+    } else {
+      ringBg = `linear-gradient(100deg, ${L.ring[0]}, ${amb} 50%, ${L.ring[1]})`;
+    }
+    panel.style.setProperty("--ring-bg", ringBg);
+    panel.style.setProperty("--ring-op", RING_OP[st.glow]);
+
+    /* 外辉光 */
+    let auraBg;
+    if (!amb || st.ambient === "off") {
+      /* 氛围关掉时，辉光退到极暗的灯光色，面板边缘仍有轮廓 */
+      auraBg = `radial-gradient(circle at 50% 55%, ${hexA(L.ring[1], .20)}, transparent 68%)`;
+    } else if (st.ambient === "rainbow") {
+      auraBg = st.dyn === "circle"
+        ? "conic-gradient(from 0deg, #FF2D95 0deg, #FFD93D 70deg, #4FE08A 140deg, #22E0FF 210deg, #A97BFF 280deg, #FF2D95 360deg)"
+        : "conic-gradient(from 200deg, #FF2D95, #FFD93D, #4FE08A, #22E0FF, #A97BFF, #FF2D95)";
+    } else if (st.dyn === "circle") {
+      /* 环绕：亮暗相间，转起来才看得见「光在走」 */
+      auraBg = `conic-gradient(from 0deg, ${hexA(amb, .95)} 0deg, ${hexA(amb, .12)} 55deg, ${hexA(amb, .8)} 120deg, ${hexA(amb, .1)} 185deg, ${hexA(amb, .95)} 250deg, ${hexA(amb, .15)} 310deg, ${hexA(amb, .95)} 360deg)`;
+    } else {
+      auraBg = `radial-gradient(circle at 50% 58%, ${hexA(amb, .95)} 0%, ${hexA(amb, .55)} 34%, ${hexA(amb, .12)} 62%, transparent 76%)`;
+    }
+    panel.style.setProperty("--aura-bg", auraBg);
+
+    /* 律动由 JS 写 --glow；其余三态给固定基准值 */
+    panel.style.setProperty("--glow", st.dyn === "pulse" ? GLOW[st.glow] * .6 : GLOW[st.glow]);
+
+    /* 面板表面底色：随灯光色微调，保证点阵对比度 */
+    const tint = st.light === "cyber" ? "rgba(18,10,26,.95)"
+               : st.light === "silver" ? "rgba(14,17,20,.95)"
+               : "rgba(23,18,11,.95)";
+    panel.style.setProperty("--surf-bg",
+      `linear-gradient(168deg, ${tint}, rgba(5,5,7,.985))`);
+
+    panel.style.setProperty("--tag-a", L.tag);
+
+    /* 点阵配色变了，预渲染贴图要重建 */
+    rebuildSprites(L);
+  }
+
+  /* 往白色提亮，用来画顶针 —— 纯色顶端不够「亮」 */
+  function lighten(hex, k) {
+    const h = hex.replace("#", "");
+    const n = parseInt(h, 16);
+    const r = (n >> 16) & 255, g2 = (n >> 8) & 255, b = n & 255;
+    const f = (v) => Math.round(v + (255 - v) * k);
+    return `rgb(${f(r)},${f(g2)},${f(b)})`;
+  }
+
+  /* 熄灯点：中性灰网格。
+     不要掺灯光色 —— 暗点带了色相，就会和点亮的点混成一片，
+     整块面板看起来「全都在亮」。 */
+  function offTint(a) {
+    return `rgba(200,208,216,${a})`;
+  }
+
+  function hexA(hex, a) {
+    const h = hex.replace("#", "");
+    const n = parseInt(h.length === 3 ? h.split("").map(c => c + c).join("") : h, 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     3. 点阵绘制
+     ─────────────────────────────────────────────────────────────────
+     关键取舍：不给每个点设 shadowBlur。
+     308 个点 × shadowBlur 是逐点做一次高斯，帧率会掉到个位数。
+     改为「离屏预渲染一张发光贴图，每帧 drawImage」——
+     同一色带共用一个 sprite，一次重建、永久复用。
+     ══════════════════════════════════════════════════════════════════ */
+  const COLS = 22;
+  const ROWS = 14;
+
+  const cv = document.getElementById("dots");
+  const g = cv.getContext("2d");
+
+  let sprites = [];      /* 三条色带各一张发光贴图 */
+  let dotRad = 5;        /* 核心圆半径 */
+  let cellW = 20, cellH = 16;
+  let W = 0, H = 0, dpr = 1;
+
+  /* 色带划分：底 3 行 / 中 5 行 / 顶 6 行 —— 与截图一致 */
+  const BAND_EDGE = [0.235, 0.60];   /* t < 0.235 → 0；< 0.60 → 1；否则 2 */
+
+  function bandOf(t) {
+    return t < BAND_EDGE[0] ? 0 : (t < BAND_EDGE[1] ? 1 : 2);
+  }
+
+  function makeSprite(color) {
+    const S = 96;
+    const c = document.createElement("canvas");
+    c.width = c.height = S;
+    const x = c.getContext("2d");
+    const rg = x.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+    rg.addColorStop(0.00, hexA(color, 1));
+    rg.addColorStop(0.26, hexA(color, .92));
+    rg.addColorStop(0.40, hexA(color, .42));
+    rg.addColorStop(0.66, hexA(color, .10));
+    rg.addColorStop(1.00, hexA(color, 0));
+    x.fillStyle = rg;
+    x.fillRect(0, 0, S, S);
+    return c;
+  }
+
+  function rebuildSprites(L) {
+    sprites = L.bands.map(makeSprite);
+  }
+
+  function resize() {
+    const r = cv.getBoundingClientRect();
+    if (!r.width || !r.height) return false;
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = Math.round(r.width);
+    H = Math.round(r.height);
+    if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) {
+      cv.width = Math.round(W * dpr);
+      cv.height = Math.round(H * dpr);
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    cellW = W / COLS;
+    cellH = H / ROWS;
+    dotRad = Math.min(cellW, cellH) * 0.30;
+    return true;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     4. 电平来源
+     ─────────────────────────────────────────────────────────────────
+     原型用合成信号。正式实现这里换成 analyser.getByteFrequencyData，
+     取样规则沿用 viz.js:215 的对数映射（线性取样低频会挤成一坨）。
+     ══════════════════════════════════════════════════════════════════ */
+  const levels = new Float32Array(COLS);
+
+  /* 每列一个固定的个性因子：真实频谱的相邻列高度差很大，
+     只用一条光滑包络会让整排看起来像等高等比缩放。 */
+  const GRAIN = new Float32Array(COLS);
+  for (let i = 0; i < COLS; i++) {
+    /* 两个低频正弦叠加 → 起伏成「团块」，相邻列相关；
+       再掺一点确定性抖动，保留锐利感。纯随机会让点阵像噪声。 */
+    const jit = (Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1 - 0.5) * 0.15;
+    GRAIN[i] = 0.70 + 0.29 * Math.sin(i * 1.87 + 0.4)
+                    + 0.19 * Math.sin(i * 3.61 + 1.7) + jit;
+  }
+
+  function synthLevels(ms) {
+    const t = ms / 1000;
+    /* 2 Hz 的拍子，让整排有点呼吸感 */
+    const beat = 0.5 + 0.5 * Math.sin(t * Math.PI * 2 * 2.0);
+    const beat2 = 0.5 + 0.5 * Math.sin(t * Math.PI * 2 * 0.47 + 1.1);
+
+    for (let i = 0; i < COLS; i++) {
+      const k = i / (COLS - 1);
+      /* 低频高、高频低的基础包络 */
+      const env = 0.20 + 0.85 * Math.pow(1 - k, 1.35);
+      /* 每列自己的相位，避免整排同步跳动（同步跳动看起来是假的） */
+      const own = 0.5 + 0.5 * Math.sin(t * (1.3 + i * 0.21) + i * 1.7);
+      const v = env * GRAIN[i] * (0.70 + 0.30 * own) * (0.80 + 0.34 * beat) * (0.90 + 0.16 * beat2);
+      levels[i] = Math.max(0, Math.min(1, v));
+    }
+    /* 相邻列平滑一遍，柱间才不会犬牙交错 */
+    const tmp = levels.slice();
+    for (let i = 0; i < COLS; i++) {
+      const a = tmp[Math.max(0, i - 1)], b = tmp[i], c = tmp[Math.min(COLS - 1, i + 1)];
+      levels[i] = a * 0.12 + b * 0.76 + c * 0.12;
+    }
+  }
+
+  let lastRms = 0;
+
+  function draw() {
+    g.clearRect(0, 0, W, H);
+
+    const live = st.live === "1";
+    const offR = dotRad * 0.66;
+
+    /* 熄灯点：暗但可见 —— 网格是构图的一部分，画成透明就退化成柱状图了 */
+    g.fillStyle = live ? offTint(.045) : offTint(.062);
+
+    for (let c = 0; c < COLS; c++) {
+      const cx = c * cellW + cellW / 2;
+      const lv = live ? levels[c] : 0;
+      const lit = Math.round(lv * ROWS);
+
+      for (let r = 0; r < ROWS; r++) {
+        const cy = H - r * cellH - cellH / 2;   /* r = 0 在底部 */
+        const on = r < lit;
+
+        if (!on) {
+          g.beginPath();
+          g.arc(cx, cy, offR, 0, Math.PI * 2);
+          g.fill();
+          continue;
+        }
+
+        const t = r / (ROWS - 1);
+        const bi = bandOf(t);
+        const top = (r === lit - 1);            /* 顶端那颗是「针尖」，最亮 */
+
+        /* 光晕 */
+        const sp = sprites[bi];
+        if (sp) {
+          const size = Math.min(dotRad * (top ? 7.0 : 4.2),
+                                cellH * (top ? 2.1 : 1.45));
+          g.globalAlpha = top ? 1 : 0.54;
+          g.globalCompositeOperation = "lighter";
+          g.drawImage(sp, cx - size / 2, cy - size / 2, size, size);
+          g.globalCompositeOperation = "source-over";
+        }
+
+        /* 实心核 —— 没有它，光晕会糊成一团，看不出「点」 */
+        g.globalAlpha = top ? 1 : 0.88;
+        g.fillStyle = top
+          ? lighten(LIGHTS[st.light].bands[bi], 0.17)
+          : LIGHTS[st.light].bands[bi];
+        g.beginPath();
+        g.arc(cx, cy, dotRad * (top ? 1.06 : 1), 0, Math.PI * 2);
+        g.fill();
+      }
+    }
+    g.globalAlpha = 1;
+
+    /* 律动所需的整体能量 */
+    let sum = 0;
+    for (let i = 0; i < COLS; i++) sum += levels[i] * levels[i];
+    lastRms = Math.sqrt(sum / COLS);
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     5. 主循环 —— 单条 rAF，不新增第二条
+     ══════════════════════════════════════════════════════════════════ */
+  const TICK = 3;            /* 律动每 3 帧写一次 CSS 变量，不是每帧 */
+  let frame = 0;
+
+  function loop(ms) {
+    if (resize()) {
+      if (st.live === "1") synthLevels(ms);
+      draw();
+
+      /* 律动：把整体能量写进 --glow。节流写，避免每帧触发样式重算 */
+      if (st.dyn === "pulse" && frame % TICK === 0) {
+        const base = GLOW[st.glow];
+        panel.style.setProperty("--glow", (base * (0.46 + lastRms * 1.05)).toFixed(3));
+      }
+    }
+    frame++;
+    requestAnimationFrame(loop);
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     6. 交互
+     ══════════════════════════════════════════════════════════════════ */
+  function syncChips() {
+    document.querySelectorAll(".chips").forEach(box => {
+      const key = box.dataset.key;
+      box.querySelectorAll(".chip").forEach(b => {
+        b.setAttribute("aria-pressed", String(b.dataset.v === st[key]));
+      });
+    });
+  }
+
+  document.querySelectorAll(".chips").forEach(box => {
+    box.addEventListener("click", e => {
+      const b = e.target.closest(".chip");
+      if (!b) return;
+      st[box.dataset.key] = b.dataset.v;
+      syncChips();
+      applyTheme();
+    });
+  });
+
+  /* 初始化 */
+  resize();
+  syncChips();
+  applyTheme();
+  /* 默认态先跑一次，让待机/播放两条路径都验证过 */
+  requestAnimationFrame(loop);
+
+  /* 供后续截图脚本读取 / 切换状态用 */
+  window.__aura = { st, panel, apply: applyTheme, sync: syncChips };
+})();
+</script>
+</body>
+</html>
