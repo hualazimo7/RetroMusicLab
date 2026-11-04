@@ -1,0 +1,116 @@
+{
+  "_readme": [
+    "只填数字 / 十六进制颜色 / 简短标识。找不到的留 null，不要凭截图猜着填。",
+    "每个字段左边注释写了它在哪、影响什么；对不上就填进 unmapped，附一句说明。",
+    "填完这个文件就够，不要带任何反编译源码或素材回来。"
+  ],
+
+  "_meta": {
+    "refProduct": "auroraplay",
+    "refVersion": null,
+    "stack": null,
+    "note": "stack 填 electron / qt-qml / flutter / python-qt / native，决定了哪些值可读"
+  },
+
+  "dots": {
+    "_where": "点阵几何，对应 proto-aura.html 的 COLS / ROWS / BAND_EDGE（约 521-536 行）",
+    "cols": null,
+    "rows": null,
+    "bandEdge": [null, null],
+    "_bandEdge_hint": "归一化高度，两个数，例如 0.33 / 0.66；等价于渐变里 33% / 66% 的分界",
+    "dotDiameterPx": null,
+    "dotGapPx": null,
+    "dotAreaAspect": null,
+    "_dotAreaAspect_hint": "点阵区宽/高，例如 2.6 表示宽是高的 2.6 倍"
+  },
+
+  "lights": {
+    "_where": "四套频谱灯光的三段色 + 边框双色，对应 LIGHTS（约 406 行）",
+    "_order": "bands 从下到上（低→高），ring 是边框渐变的两端",
+    "copper": { "bands": [null, null, null], "ring": [null, null] },
+    "gold": { "bands": [null, null, null], "ring": [null, null] },
+    "silver": { "bands": [null, null, null], "ring": [null, null] },
+    "cyber": { "bands": [null, null, null], "ring": [null, null] }
+  },
+
+  "ambient": {
+    "_where": "氛围灯 7 色的具体值，对应 AMBIENT（约 417 行）",
+    "off": null,
+    "gold": null,
+    "green": null,
+    "ice": null,
+    "violet": null,
+    "rainbow": null,
+    "_rainbow_hint": "彩虹若是渐变，写成分段色数组，顺序按起始角度"
+  },
+
+  "glowLevels": {
+    "_where": "四档透光对外辉光强度，对应 GLOW（约 425 行）",
+    "off": null,
+    "low": null,
+    "mid": null,
+    "high": null
+  },
+
+  "ringOpacity": {
+    "_where": "四档透光对边框不透明度，对应 RING_OP（约 426 行）",
+    "off": null,
+    "low": null,
+    "mid": null,
+    "high": null
+  },
+
+  "halo": {
+    "_where": "外辉光的模糊与扩散，对应 .aura 的 filter/blur/inset（约 125 行）",
+    "blurPx": null,
+    "insetPx": null,
+    "_inset_hint": "负数表示向外扩，例如 -15",
+    "shadowLayers": null,
+    "_shadowLayers_hint": "若是多层 box-shadow，按顺序写，例如 ['0 0 12px c','0 0 32px c']"
+  },
+
+  "motion": {
+    "_where": "动画周期与律动映射，对应 .aura 的 animation（141/146 行）与主循环（约 692 行）",
+    "breatheSec": null,
+    "spinSec": null,
+    "pulseFormula": null,
+    "_pulseFormula_hint": "用一句话或伪公式描述，例如 base*(0.46+rms*1.05)；不要把函数体贴进来",
+    "pulseThrottleFrames": null,
+    "levelTransitionMs": null
+  },
+
+  "material": {
+    "_where": "面板材质，对应 .surface::after 的噪声（约 188 行）",
+    "type": null,
+    "_type_hint": "svg-noise / bitmap-texture / css-only / backdrop-filter",
+    "baseFrequency": null,
+    "numOctaves": null,
+    "opacity": null
+  },
+
+  "audio": {
+    "_where": "音频分析参数（如果有）",
+    "fftSize": null,
+    "smoothingTimeConstant": null,
+    "driveSource": null,
+    "_driveSource_hint": "time-domain-rms / freq-average / beat-detect / midi-playback"
+  },
+
+  "drawing": {
+    "_where": "点阵怎么画的 —— 决定我们的方案有没有走弯路",
+    "method": null,
+    "_method_hint": "per-dot-arc / bars+mask / canvas-pattern / dom-elements / css-only",
+    "unlitDotsDrawn": null,
+    "_unlitDotsDrawn_hint": "true 表示熄灭的点也画（我们目前是），false 表示只画点亮的",
+    "glowMethod": null,
+    "_glowMethod_hint": "shadowBlur / precomputed-sprite / css-filter —— 这条直接决定性能上限"
+  },
+
+  "a11y": {
+    "reducedMotionHandled": null
+  },
+
+  "unmapped": {
+    "_hint": "上面装不下的、你觉得我们该知道的，一句一条。例如：它切档位是硬切，没有过渡"
+  }
+}
