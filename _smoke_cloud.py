@@ -27,6 +27,7 @@ sys.path.insert(0, os.path.join(PROJ, "msu1-to-cd"))
 
 import msu1_gui as g          # noqa: E402
 import netease_cloud as ncm   # noqa: E402
+import cloud_upload as cu_mod  # noqa: E402  （别名避开 main() 里的 cu 实例）
 
 RESULTS = []
 
@@ -184,8 +185,10 @@ def main():
     check(mm == [m1] and tt == [t1, t2], "7.3 分组正确",
           "%s / %s" % ([os.path.basename(x) for x in mm],
                        [os.path.basename(x) for x in tt]))
-    check(g.wavmerge is not None and g._MERGE_TAG == g.wavmerge.MERGE_TAG,
-          "7.4 后缀标记与 wavmerge 同源（改一处不会漂移）", g._MERGE_TAG)
+    # v5.0-qt 起标记常量只在两处：wavmerge 定义、cloud_upload 引用。
+    # 这里断言 cloud_upload 真的取到了 wavmerge 的值，而不是兜底常量。
+    check(g.wavmerge is not None and cu_mod.MERGE_TAG == g.wavmerge.MERGE_TAG,
+          "7.4 后缀标记与 wavmerge 同源（改一处不会漂移）", cu_mod.MERGE_TAG)
     _mt = g.wavmerge.merge_target(tmpdir, "Some Pack")
     check(g.is_merged_wav(_mt),
           "7.5 merge_target 的产物能被认出来（命名闭环）",
