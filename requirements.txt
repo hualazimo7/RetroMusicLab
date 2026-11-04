@@ -1,0 +1,30 @@
+# RetroMusicLab 依赖基线
+#
+# 目标解释器：64 位 Python 3.14，且必须带 tkinter（官方安装包默认包含）。
+#   py -3.14 -m pip install -r requirements.txt
+#
+# 版本取自 docs/换机转移说明.md 的实测打包基线 —— 对着装，不要随意升大版本。
+# 注释里的「漏了会怎样」是踩过的坑，删依赖前先看一眼。
+
+# ---- 运行时必需 ----
+numpy==2.5.4          # 音量缩放 / PCM 处理
+miniaudio==1.71       # 试听播放、MP3 解码
+cffi==2.1.1           # miniaudio 的底层依赖
+soundfile==0.14.0     # WAV / FLAC 读写（自带 libsndfile DLL）
+py7zr==1.1.4          # 下载页 7z 解包；惰性 import，缺了只在解 7z 时崩
+pycryptodome==4.1.0   # 网易云云盘 AES-128-CBC
+av==19.0.1            # PyAV / FFmpeg，光盘镜像 CD-DA、XA-ADPCM、预录流解码
+                      # 惰性 import，缺了普通转换照跑，一碰光盘镜像才崩
+                      # 带 65 MB av.libs，打包时不可省
+segno==1.6.6          # 扫码登录二维码（纯 Python，不依赖 Pillow）
+
+# ---- 打包 / 发布 ----
+pyinstaller==6.22.3   # 只在打 exe 时需要
+
+# ---- 可选 ----
+# ziglang==0.16.0     # 仅在重建原生解码器（wsr2wav / psf2wav / ssf2wav 等）时需要
+
+# 说明：
+# * tkinter / ctypes / wave / array 等均为标准库，不需要在这里声明。
+# * Pillow、requests 不在清单内 —— 运行时代码没有任何 import，
+#   历史上曾用于截图脚本，现已不需要。
