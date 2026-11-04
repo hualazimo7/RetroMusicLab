@@ -65,7 +65,7 @@ APP_ID = "RetroMusic Lab"
 #: ⚠ 历史上这里漂过：界面停在 5.2、实际已经是 5.5（2026-10-25 修）。
 #: ⚠ 与 ``dl_convert.AUDIO_WRITER_VERSION`` 是**两个东西**：后者是编码器能力
 #:   标记（决定旧 MP3 要不要重转，必须保持 ≥5.9.18），不要跟着产品版本改。
-APP_VERSION = "1.0"
+APP_VERSION = "1.1"
 
 #: 只允许这些静态文件出去 —— 别把整个目录暴露成可下载
 STATIC_OK = {"index.html", "app.css", "app.js", "favicon.ico", "logo.svg",
